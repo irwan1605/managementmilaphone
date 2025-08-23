@@ -1,19 +1,26 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import {
-  LogOut,
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 
 // Import Icons
-import { 
-  FaHome, FaMobileAlt, FaMotorcycle, FaToolbox, FaClipboardList, 
-  FaStore, FaUsers, FaShoppingCart, FaCartPlus, FaMoneyCheckAlt 
+import {
+  FaHome,
+  FaMobileAlt,
+  FaMotorcycle,
+  FaToolbox,
+  FaClipboardList,
+  FaStore,
+  FaUsers,
+  FaShoppingCart,
+  FaCartPlus,
+  FaMoneyCheckAlt,
 } from "react-icons/fa";
 import { AiFillPhone, AiOutlineDatabase } from "react-icons/ai";
 import { BsGraphUp, BsTagsFill, BsFileEarmarkText } from "react-icons/bs";
 import { MdBuild } from "react-icons/md";
-import { FiBox } from "react-icons/fi"; // <— ini yang hilang
+import { FiBox } from "react-icons/fi";
+import { FaCashRegister } from "react-icons/fa"; // <— ini yang hilang
 
 const Sidebar = () => {
   const [showSubMenu, setShowSubMenu] = useState(false);
@@ -22,8 +29,8 @@ const Sidebar = () => {
   const [showSubMenuPenjualan, setShowSubMenuPenjualan] = useState(false);
   const [showSubMenuPembelian, setShowSubMenuPembelian] = useState(false);
   const [showSubMenuStock, setShowSubMenuStock] = useState(false);
+  const [showSubMenuStruk, setShowSubMenuStruk] = useState(false);
   const navigate = useNavigate();
-
 
   const handleLogout = () => {
     localStorage.removeItem("auth");
@@ -60,19 +67,28 @@ const Sidebar = () => {
         {showSubMenulaporan && (
           <ul className="pl-6">
             <li>
-              <Link to="/sales-report" className="flex items-center p-2 hover:bg-blue-500">
+              <Link
+                to="/sales-report"
+                className="flex items-center p-2 hover:bg-blue-500"
+              >
                 <BsGraphUp className="text-lg" />
                 <span className="ml-2">Laporan Penjualan</span>
               </Link>
             </li>
             <li>
-              <Link to="/inventory-report" className="flex items-center p-2 hover:bg-blue-500">
+              <Link
+                to="/inventory-report"
+                className="flex items-center p-2 hover:bg-blue-500"
+              >
                 <BsTagsFill className="text-lg" />
                 <span className="ml-2">Laporan Persediaan</span>
               </Link>
             </li>
             <li>
-              <Link to="/finance-report" className="flex items-center p-2 hover:bg-blue-500">
+              <Link
+                to="/finance-report"
+                className="flex items-center p-2 hover:bg-blue-500"
+              >
                 <FaClipboardList className="text-lg" />
                 <span className="ml-2">Laporan Keuangan</span>
               </Link>
@@ -114,26 +130,38 @@ const Sidebar = () => {
         </button>
         {showSubMenuPenjualan && (
           <ul className="pl-6">
-             <li>
-              <Link to="/input-penjualan" className="flex items-center p-2 hover:bg-blue-500">
-              <FaClipboardList className="text-lg" />
+            <li>
+              <Link
+                to="/input-penjualan"
+                className="flex items-center p-2 hover:bg-blue-500"
+              >
+                <FaClipboardList className="text-lg" />
                 <span className="ml-2">Input Penjualan</span>
               </Link>
             </li>
             <li>
-              <Link to="/penjualan-handphone" className="flex items-center p-2 hover:bg-blue-500">
+              <Link
+                to="/penjualan-handphone"
+                className="flex items-center p-2 hover:bg-blue-500"
+              >
                 <FaMobileAlt className="text-lg" />
                 <span className="ml-2">Handphone</span>
               </Link>
             </li>
             <li>
-              <Link to="/penjualan-motor-listrik" className="flex items-center p-2 hover:bg-blue-500">
+              <Link
+                to="/penjualan-motor-listrik"
+                className="flex items-center p-2 hover:bg-blue-500"
+              >
                 <FaMotorcycle className="text-lg" />
                 <span className="ml-2">Motor Listrik</span>
               </Link>
             </li>
             <li>
-              <Link to="/accessories" className="flex items-center p-2 hover:bg-blue-500">
+              <Link
+                to="/accessories"
+                className="flex items-center p-2 hover:bg-blue-500"
+              >
                 <FaToolbox className="text-lg" />
                 <span className="ml-2">Accessories</span>
               </Link>
@@ -152,7 +180,10 @@ const Sidebar = () => {
         {showSubMenuPembelian && (
           <ul className="pl-6">
             <li>
-              <Link to="/pembelian-motor-listrik" className="flex items-center p-2 hover:bg-blue-500">
+              <Link
+                to="/pembelian-motor-listrik"
+                className="flex items-center p-2 hover:bg-blue-500"
+              >
                 <AiFillPhone className="text-lg" />
                 <span className="ml-2">Pembelian Produk</span>
               </Link>
@@ -171,13 +202,19 @@ const Sidebar = () => {
         {showSubMenuService && (
           <ul className="pl-6">
             <li>
-              <Link to="/service-handphone" className="flex items-center p-2 hover:bg-blue-500">
+              <Link
+                to="/service-handphone"
+                className="flex items-center p-2 hover:bg-blue-500"
+              >
                 <AiFillPhone className="text-lg" />
                 <span className="ml-2">Service Handphone</span>
               </Link>
             </li>
             <li>
-              <Link to="/service-motor-listrik" className="flex items-center p-2 hover:bg-blue-500">
+              <Link
+                to="/service-motor-listrik"
+                className="flex items-center p-2 hover:bg-blue-500"
+              >
                 <FaMotorcycle className="text-lg" />
                 <span className="ml-2">Service Motor Listrik</span>
               </Link>
@@ -196,19 +233,28 @@ const Sidebar = () => {
         {showSubMenuStock && (
           <ul className="pl-6">
             <li>
-              <Link to="/stock-handphone" className="flex items-center p-2 hover:bg-blue-500">
+              <Link
+                to="/stock-handphone"
+                className="flex items-center p-2 hover:bg-blue-500"
+              >
                 <FaMobileAlt className="text-lg" />
                 <span className="ml-2">Handphone</span>
               </Link>
             </li>
             <li>
-              <Link to="/stock-motor-listrik" className="flex items-center p-2 hover:bg-blue-500">
+              <Link
+                to="/stock-motor-listrik"
+                className="flex items-center p-2 hover:bg-blue-500"
+              >
                 <FaMotorcycle className="text-lg" />
                 <span className="ml-2">Motor Listrik</span>
               </Link>
             </li>
             <li>
-              <Link to="/stock-accessories" className="flex items-center p-2 hover:bg-blue-500">
+              <Link
+                to="/stock-accessories"
+                className="flex items-center p-2 hover:bg-blue-500"
+              >
                 <FaToolbox className="text-lg" />
                 <span className="ml-2">Accessories</span>
               </Link>
@@ -217,27 +263,85 @@ const Sidebar = () => {
         )}
 
         {/* KEUANGAN */}
-        <Link to="/keuangan" className="flex items-center p-3 hover:bg-blue-500">
+        <Link
+          to="/keuangan"
+          className="flex items-center p-3 hover:bg-blue-500"
+        >
           <FaMoneyCheckAlt className="text-xl" />
           <span className="ml-2">KEUANGAN</span>
         </Link>
 
         {/* USER MANAGEMENT */}
-        <Link to="/user-management" className="flex items-center p-3 hover:bg-blue-500">
+        <Link
+          to="/user-management"
+          className="flex items-center p-3 hover:bg-blue-500"
+        >
           <FaUsers className="text-xl" />
           <span className="ml-2">USER MANAGEMENT</span>
         </Link>
 
         {/* MASTER DATA */}
-        <Link to="/data-management" className="flex items-center p-3 hover:bg-blue-500">
+        <Link
+          to="/data-management"
+          className="flex items-center p-3 hover:bg-blue-500"
+        >
           <AiOutlineDatabase className="text-xl" />
           <span className="ml-2">MASTER DATA</span>
         </Link>
+
+        <button
+          onClick={() => setShowSubMenuStruk(!showSubMenuStruk)}
+          className="w-full flex items-center p-3 hover:bg-blue-500 text-left"
+        >
+          <FaCashRegister className="mr-2" />
+          <span className="ml-2">CETAK FAKTUR</span>
+        </button>
+        {showSubMenuStruk && (
+          <ul className="pl-6">
+            <li>
+              {/* === MENU CETAK FAKTUR BARU === */}
+
+              <Link
+                to="/struk-penjualan"
+                className="block pl-6 py-1 hover:bg-blue-600 rounded"
+              >
+                Struk Faktur Penjualan
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/struk-penjualan-imei"
+                className="block pl-6 py-1 hover:bg-blue-600 rounded"
+              >
+                Struk Faktur Penjualan IMEI
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/surat-jalan"
+                className="block pl-6 py-1 hover:bg-blue-600 rounded"
+              >
+                Surat Jalan
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/invoice"
+                className="block pl-6 py-1 hover:bg-blue-600 rounded"
+              >
+                Invoice
+              </Link>
+            </li>
+          </ul>
+        )}
       </nav>
       <div className="flex items-center mt-6 p-8 ms-6">
-      <button className="logout-btn px-10 py-2 bg-red-500 text-white hover:bg-green-500 rounded-lg" onClick={handleLogout}>
-        <LogOut size={30} /> <span>Keluar</span>
-      </button>
+        <button
+          className="logout-btn px-10 py-2 bg-red-500 text-white hover:bg-green-500 rounded-lg"
+          onClick={handleLogout}
+        >
+          <LogOut size={30} /> <span>Keluar</span>
+        </button>
       </div>
     </div>
   );

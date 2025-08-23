@@ -36,6 +36,11 @@ import StockHandphone from "./pages/StockHandphone";
 import StockAccessories from "./pages/StockAccessories";
 import Keuangan from "./pages/Keuangan";
 import InputPenjualan from "./pages/InputPenjualan";
+import StrukPenjualan from "./pages/StrukPenjualan";
+import StrukPenjualanIMEI from "./pages/StrukPenjualanIMEI";
+import SuratJalan from './pages/SuratJalan';
+import Invoice from "./pages/Invoice";
+
 
 // dummy users
 const dummyUsers = [
@@ -81,31 +86,94 @@ export default function App() {
                 {/* Menu umum */}
                 <Route path="/sales-report" element={<SalesReport />} />
                 <Route path="/inventory-report" element={<InventoryReport />} />
-                <Route path="/penjualan-handphone" element={<PenjualanHandphone />} />
+                <Route
+                  path="/penjualan-handphone"
+                  element={<PenjualanHandphone />}
+                />
                 <Route path="/input-penjualan" element={<InputPenjualan />} />
-                <Route path="/penjualan-motor-listrik" element={<PenjualanMotorListrik />} />
-                <Route path="/pembelian-motor-listrik" element={<PembelianMotorListrik />} />
-                <Route path="/stock-motor-listrik" element={<StockMotorListrik />} />
+                <Route
+                  path="/penjualan-motor-listrik"
+                  element={<PenjualanMotorListrik />}
+                />
+                <Route
+                  path="/pembelian-motor-listrik"
+                  element={<PembelianMotorListrik />}
+                />
+                <Route
+                  path="/stock-motor-listrik"
+                  element={<StockMotorListrik />}
+                />
                 <Route path="/stock-handphone" element={<StockHandphone />} />
                 <Route path="/keuangan" element={<Keuangan />} />
-                <Route path="/stock-accessories" element={<StockAccessories />} />
+                <Route
+                  path="/stock-accessories"
+                  element={<StockAccessories />}
+                />
                 <Route path="/accessories" element={<Accessories />} />
-                <Route path="/service-handphone" element={<ServiceHandphone />} />
-                <Route path="/service-motor-listrik" element={<ServiceMotorListrik />} />
+                <Route
+                  path="/service-handphone"
+                  element={<ServiceHandphone />}
+                />
+                <Route
+                  path="/service-motor-listrik"
+                  element={<ServiceMotorListrik />}
+                />
                 <Route path="/products" element={<Products />} />
                 <Route path="/user-management" element={<UserManagement />} />
                 <Route path="/data-management" element={<DataManagement />} />
 
                 {/* Route untuk toko */}
-                <Route path="/sales-report/toko1" element={<SalesReportToko1 />} />
-                <Route path="/sales-report/toko1/handphone" element={<SalesReportHandphone />} />
-                <Route path="/sales-report/toko1/motor-listrik" element={<SalesReportMotorListrik />} />
-                <Route path="/sales-report/toko1/accessories" element={<SalesReportAccessories />} />
-                <Route path="/sales-report/toko1/servis-handphone" element={<SalesReportServisHandphone />} />
-                <Route path="/sales-report/toko2" element={<SalesReportToko2 />} />
-                <Route path="/toko1/tambah-penjualan" element={<TambahPenjualan />} />
-                <Route path="/toko1/hapus-penjualan" element={<HapusPenjualan />} />
-                <Route path="/toko1/edit-penjualan" element={<EditPenjualan />} />
+                <Route
+                  path="/sales-report/toko1"
+                  element={<SalesReportToko1 />}
+                />
+                <Route
+                  path="/sales-report/toko1/handphone"
+                  element={<SalesReportHandphone />}
+                />
+                <Route
+                  path="/sales-report/toko1/motor-listrik"
+                  element={<SalesReportMotorListrik />}
+                />
+                <Route
+                  path="/sales-report/toko1/accessories"
+                  element={<SalesReportAccessories />}
+                />
+                <Route
+                  path="/sales-report/toko1/servis-handphone"
+                  element={<SalesReportServisHandphone />}
+                />
+                <Route
+                  path="/sales-report/toko2"
+                  element={<SalesReportToko2 />}
+                />
+                <Route
+                  path="/toko1/tambah-penjualan"
+                  element={<TambahPenjualan />}
+                />
+                <Route
+                  path="/toko1/hapus-penjualan"
+                  element={<HapusPenjualan />}
+                />
+                <Route
+                  path="/toko1/edit-penjualan"
+                  element={<EditPenjualan />}
+                />
+
+                {/* CETAK FAKTUR */}
+                <Route
+                  path="/struk-penjualan"
+                  element={<StrukPenjualan />}
+                />
+                <Route
+                  path="/struk-penjualan-imei"
+                  element={<StrukPenjualanIMEI />}
+                />
+                <Route
+                  path="/surat-jalan"
+                  element={<SuratJalan />}
+                />SuratJalan
+                <Route path="/invoice" element={<Invoice />} />
 
                 {/* Default redirect */}
                 <Route path="*" element={<Navigate to="/dashboard" />} />
