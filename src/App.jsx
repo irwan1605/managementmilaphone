@@ -35,6 +35,7 @@ import StockMotorListrik from "./pages/StockMotorListrik";
 import StockHandphone from "./pages/StockHandphone";
 import StockAccessories from "./pages/StockAccessories";
 import Keuangan from "./pages/Keuangan";
+import InputPenjualan from "./pages/InputPenjualan";
 
 // dummy users
 const dummyUsers = [
@@ -81,6 +82,7 @@ export default function App() {
                 <Route path="/sales-report" element={<SalesReport />} />
                 <Route path="/inventory-report" element={<InventoryReport />} />
                 <Route path="/penjualan-handphone" element={<PenjualanHandphone />} />
+                <Route path="/input-penjualan" element={<InputPenjualan />} />
                 <Route path="/penjualan-motor-listrik" element={<PenjualanMotorListrik />} />
                 <Route path="/pembelian-motor-listrik" element={<PembelianMotorListrik />} />
                 <Route path="/stock-motor-listrik" element={<StockMotorListrik />} />

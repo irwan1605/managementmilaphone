@@ -114,6 +114,12 @@ const Sidebar = () => {
         </button>
         {showSubMenuPenjualan && (
           <ul className="pl-6">
+             <li>
+              <Link to="/input-penjualan" className="flex items-center p-2 hover:bg-blue-500">
+              <FaClipboardList className="text-lg" />
+                <span className="ml-2">Input Penjualan</span>
+              </Link>
+            </li>
             <li>
               <Link to="/penjualan-handphone" className="flex items-center p-2 hover:bg-blue-500">
                 <FaMobileAlt className="text-lg" />
