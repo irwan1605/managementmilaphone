@@ -38,7 +38,7 @@ const Navbar = ({ user, handleLogout, isAuthenticated }) => {
   return (
     <nav className="bg-white shadow-md py-4 px-6 flex justify-between items-center">
       <h1 className="text-2xl font-bold">
-        Aplikasi Monitoring dan Report Management MGS
+        Aplikasi Monitoring dan Report Management MILA PHONE
       </h1>
 
       <div className="flex items-center gap-2" ref={dropdownRef}>
