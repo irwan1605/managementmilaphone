@@ -1,3 +1,4 @@
+// App.jsx
 import React, { useState } from "react";
 import {
   BrowserRouter as Router,
@@ -21,15 +22,6 @@ import PenjualanHandphone from "./pages/PenjualanHandphone";
 import PenjualanMotorListrik from "./pages/PenjualanMotorListrik";
 import Accessories from "./pages/Accessories";
 import DataManagement from "./pages/DataManagement";
-import SalesReportToko1 from "./pages/Toko1/SalesReportToko1";
-import SalesReportToko2 from "./pages/SalesReportToko2";
-import SalesReportHandphone from "./pages/Toko1/SalesReportHandphone";
-import SalesReportMotorListrik from "./pages/Toko1/SalesReportMotorListrik";
-import SalesReportAccessories from "./pages/Toko1/SalesReportAccessories";
-import SalesReportServisHandphone from "./pages/Toko1/SalesReportServisHandphone";
-import TambahPenjualan from "./pages/Toko1/TambahPenjualan";
-import EditPenjualan from "./pages/Toko1/EditPenjualan";
-import HapusPenjualan from "./pages/Toko1/HapusPenjualan";
 import PembelianMotorListrik from "./pages/PembelianMotorListrik";
 import StockMotorListrik from "./pages/StockMotorListrik";
 import StockHandphone from "./pages/StockHandphone";
@@ -38,9 +30,11 @@ import Keuangan from "./pages/Keuangan";
 import InputPenjualan from "./pages/InputPenjualan";
 import StrukPenjualan from "./pages/StrukPenjualan";
 import StrukPenjualanIMEI from "./pages/StrukPenjualanIMEI";
-import SuratJalan from './pages/SuratJalan';
+import SuratJalan from "./pages/SuratJalan";
 import Invoice from "./pages/Invoice";
 
+// === tambahan DashboardToko universal untuk 10 toko ===
+import DashboardToko from "./pages/DashboardToko";
 
 // dummy users
 const dummyUsers = [
@@ -50,20 +44,44 @@ const dummyUsers = [
   { username: "toko3", password: "123", role: "pic_toko", toko: "Toko C" },
 ];
 
+// dummy data generator 10 row / toko
+const generateDummyData = (tokoName) =>
+  Array.from({ length: 10 }, (_, i) => ({
+    id: i + 1,
+    tanggal: `2025-08-${(i + 1).toString().padStart(2, "0")}`,
+    kategori: ["Accessories", "Handphone", "Motor Listrik", "Service"][i % 4],
+    produk: `${tokoName} Produk ${i + 1}`,
+    qty: Math.floor(Math.random() * 5) + 1,
+    harga: (Math.floor(Math.random() * 5) + 1) * 1000000,
+  }));
+
 export default function App() {
   const [user, setUser] = useState(null);
 
+  // data 10 toko
+  const tokoData = {
+    1: generateDummyData("Toko 1"),
+    2: generateDummyData("Toko 2"),
+    3: generateDummyData("Toko 3"),
+    4: generateDummyData("Toko 4"),
+    5: generateDummyData("Toko 5"),
+    6: generateDummyData("Toko 6"),
+    7: generateDummyData("Toko 7"),
+    8: generateDummyData("Toko 8"),
+    9: generateDummyData("Toko 9"),
+    10: generateDummyData("Toko 10"),
+  };
+
   const handleLogin = (username, role, toko) => {
-    setUser({ username, role, toko }); // simpan user login
+    setUser({ username, role, toko });
   };
 
   const handleLogout = () => {
-    setUser(null); // hapus user saat logout
+    setUser(null);
   };
 
   return (
     <Router>
-      {/* Kalau belum login → hanya Login/Register */}
       {!user ? (
         <Routes>
           <Route
@@ -74,14 +92,24 @@ export default function App() {
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
       ) : (
-        // Kalau sudah login → tampil layout utama
         <div className="flex h-screen">
-          <Sidebar role={user.role} toko={user.toko} />
+          <Sidebar role={user.role} toko={user.toko} onLogout={handleLogout} />
           <div className="flex-1 flex flex-col">
             <Navbar user={user} onLogout={handleLogout} />
             <div className="p-4 overflow-y-auto">
               <Routes>
                 <Route path="/dashboard" element={<Dashboard user={user} />} />
+
+                {/* Route untuk Dashboard 10 Toko */}
+                {Object.keys(tokoData).map((id) => (
+                  <Route
+                    key={id}
+                    path={`/toko/${id}`}
+                    element={
+                      <DashboardToko tokoId={id} initialData={tokoData[id]} />
+                    }
+                  />
+                ))}
 
                 {/* Menu umum */}
                 <Route path="/sales-report" element={<SalesReport />} />
@@ -122,60 +150,15 @@ export default function App() {
                 <Route path="/user-management" element={<UserManagement />} />
                 <Route path="/data-management" element={<DataManagement />} />
 
-                {/* Route untuk toko */}
-                <Route
-                  path="/sales-report/toko1"
-                  element={<SalesReportToko1 />}
-                />
-                <Route
-                  path="/sales-report/toko1/handphone"
-                  element={<SalesReportHandphone />}
-                />
-                <Route
-                  path="/sales-report/toko1/motor-listrik"
-                  element={<SalesReportMotorListrik />}
-                />
-                <Route
-                  path="/sales-report/toko1/accessories"
-                  element={<SalesReportAccessories />}
-                />
-                <Route
-                  path="/sales-report/toko1/servis-handphone"
-                  element={<SalesReportServisHandphone />}
-                />
-                <Route
-                  path="/sales-report/toko2"
-                  element={<SalesReportToko2 />}
-                />
-                <Route
-                  path="/toko1/tambah-penjualan"
-                  element={<TambahPenjualan />}
-                />
-                <Route
-                  path="/toko1/hapus-penjualan"
-                  element={<HapusPenjualan />}
-                />
-                <Route
-                  path="/toko1/edit-penjualan"
-                  element={<EditPenjualan />}
-                />
-
                 {/* CETAK FAKTUR */}
-                <Route
-                  path="/struk-penjualan"
-                  element={<StrukPenjualan />}
-                />
+                <Route path="/struk-penjualan" element={<StrukPenjualan />} />
                 <Route
                   path="/struk-penjualan-imei"
                   element={<StrukPenjualanIMEI />}
                 />
-                <Route
-                  path="/surat-jalan"
-                  element={<SuratJalan />}
-                />SuratJalan
+                <Route path="/surat-jalan" element={<SuratJalan />} />
                 <Route path="/invoice" element={<Invoice />} />
 
-                {/* Default redirect */}
                 <Route path="*" element={<Navigate to="/dashboard" />} />
               </Routes>
             </div>

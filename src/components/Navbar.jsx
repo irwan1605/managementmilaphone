@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import { Document, Packer, Paragraph, Table, TableCell, TableRow, TextRun } from "docx";
 
 const Navbar = ({ user, handleLogout, isAuthenticated }) => {
   const [showWhatsAppDropdown, setShowWhatsAppDropdown] = useState(false);
@@ -15,12 +18,69 @@ const Navbar = ({ user, handleLogout, isAuthenticated }) => {
     { name: "PIC Toko 3", phone: "628121854336" },
     { name: "PIC Toko 4", phone: "6281284458160" },
     { name: "PIC Toko 5", phone: "6287878712342" },
-    { name: "PIC Toko 6", phone: "6281234567895" },
-    { name: "PIC Toko 7", phone: "6281234567896" },
-    { name: "PIC Toko 8", phone: "6281234567897" },
-    { name: "PIC Toko 9", phone: "6281234567898" },
-    { name: "PIC Toko 10", phone: "6281234567899" },
   ];
+
+  // === EXPORT TO EXCEL ===
+  const handleExportExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(picContacts);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "PIC Contacts");
+    XLSX.writeFile(workbook, "PIC_Contacts.xlsx");
+  };
+
+  // === EXPORT TO WORD ===
+  const handleExportWord = async () => {
+    const tableRows = picContacts.map(
+      (contact) =>
+        new TableRow({
+          children: [
+            new TableCell({
+              children: [new Paragraph(contact.name)],
+            }),
+            new TableCell({
+              children: [new Paragraph(contact.phone)],
+            }),
+          ],
+        })
+    );
+
+    const doc = new Document({
+      sections: [
+        {
+          properties: {},
+          children: [
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Daftar PIC Contacts",
+                  bold: true,
+                  size: 28,
+                }),
+              ],
+            }),
+            new Table({
+              rows: [
+                new TableRow({
+                  children: [
+                    new TableCell({
+                      children: [new Paragraph("Nama")],
+                    }),
+                    new TableCell({
+                      children: [new Paragraph("Nomor HP")],
+                    }),
+                  ],
+                }),
+                ...tableRows,
+              ],
+            }),
+          ],
+        },
+      ],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "PIC_Contacts.docx");
+  };
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -49,6 +109,20 @@ const Navbar = ({ user, handleLogout, isAuthenticated }) => {
           className="border border-gray-300 px-4 py-2 rounded"
         />
 
+        {/* Tombol Export */}
+        <button
+          onClick={handleExportExcel}
+          className="px-4 py-2 bg-blue-500 text-white hover:bg-blue-700 rounded-lg"
+        >
+          Export Excel
+        </button>
+        <button
+          onClick={handleExportWord}
+          className="px-4 py-2 bg-purple-500 text-white hover:bg-purple-700 rounded-lg"
+        >
+          Export Word
+        </button>
+
         {/* Chat WhatsApp button */}
         <div className="relative">
           <button
@@ -73,45 +147,46 @@ const Navbar = ({ user, handleLogout, isAuthenticated }) => {
             </div>
           )}
         </div>
+
         {isAuthenticated && user ? (
-        <div className="flex gap-4 items-center">
-          {/* Menu untuk Superadmin */}
-          {user.role === "superadmin" && (
-            <>
-              <Link to="/dashboard">Dashboard</Link>
-              <Link to="/user-management">User Management</Link>
-              <Link to="/laporan">Laporan Semua Toko</Link>
-            </>
-          )}
+          <div className="flex gap-4 items-center">
+            {/* Menu untuk Superadmin */}
+            {user.role === "superadmin" && (
+              <>
+                <Link to="/dashboard">Dashboard</Link>
+                <Link to="/user-management">User Management</Link>
+                <Link to="/laporan">Laporan Semua Toko</Link>
+              </>
+            )}
 
-          {/* Menu untuk PIC */}
-          {user.role === "pic" && (
-            <>
-              <Link to="/dashboard">Dashboard</Link>
-              <Link to={`/toko/${user.toko[0]}`}>Kelola {user.toko[0]}</Link>
-            </>
-          )}
+            {/* Menu untuk PIC */}
+            {user.role === "pic" && (
+              <>
+                <Link to="/dashboard">Dashboard</Link>
+                <Link to={`/toko/${user.toko[0]}`}>Kelola {user.toko[0]}</Link>
+              </>
+            )}
 
-          {/* Menu untuk Staff */}
-          {user.role === "staff" && (
-            <>
-              <Link to={`/toko/${user.toko[0]}`}>Toko {user.toko[0]}</Link>
-            </>
-          )}
+            {/* Menu untuk Staff */}
+            {user.role === "staff" && (
+              <>
+                <Link to={`/toko/${user.toko[0]}`}>Toko {user.toko[0]}</Link>
+              </>
+            )}
 
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 px-4 py-1 rounded"
-          >
-            Logout
-          </button>
-        </div>
-      ) : (
-        <div className="flex gap-4">
-          <Link to="/login">Login</Link>
-          <Link to="/register">Register</Link>
-        </div>
-      )}
+            <button
+              onClick={handleLogout}
+              className="bg-red-500 px-4 py-1 rounded text-white"
+            >
+              Logout
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-4">
+            <Link to="/login">Login</Link>
+            <Link to="/register">Register</Link>
+          </div>
+        )}
       </div>
     </nav>
   );

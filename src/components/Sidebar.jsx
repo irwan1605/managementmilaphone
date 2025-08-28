@@ -22,7 +22,7 @@ import { MdBuild } from "react-icons/md";
 import { FiBox } from "react-icons/fi";
 import { FaCashRegister } from "react-icons/fa"; // <— ini yang hilang
 
-const Sidebar = () => {
+const Sidebar = ({ role, toko, onLogout }) => {
   const [showSubMenu, setShowSubMenu] = useState(false);
   const [showSubMenuService, setShowSubMenuService] = useState(false);
   const [showSubMenulaporan, setShowSubMenulaporan] = useState(false);
@@ -30,13 +30,19 @@ const Sidebar = () => {
   const [showSubMenuPembelian, setShowSubMenuPembelian] = useState(false);
   const [showSubMenuStock, setShowSubMenuStock] = useState(false);
   const [showSubMenuStruk, setShowSubMenuStruk] = useState(false);
+  const [showSubMenuDashboardToko, setShowSubMenuDashboardToko] =
+    useState(false); // 👈 baru
+
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem("auth");
-    navigate("/login");
-  };
+    // Bersihkan semua data session/localStorage
+    localStorage.clear();
+    sessionStorage.clear();
 
+    // Redirect ke halaman login
+    navigate("/login", { replace: true });
+  };
   return (
     <div className="bg-blue-700 w-64 h-screen text-white overflow-y-auto">
       <img src="/logoMMT.jpg" alt="Logo" className="logo mb-4" />
@@ -53,8 +59,32 @@ const Sidebar = () => {
           className="flex items-center p-3 hover:bg-blue-500"
         >
           <FaHome className="text-xl" />
-          <span className="ml-2">DASHBOARD</span>
+          <span className="ml-2">DASHBOARD PUSAT</span>
         </Link>
+
+        {/* === DASHBOARD TOKO === */}
+        <button
+          onClick={() => setShowSubMenuDashboardToko(!showSubMenuDashboardToko)}
+          className="w-full flex items-center p-3 hover:bg-blue-500 text-left"
+        >
+          <FaStore className="text-xl" />
+          <span className="ml-2">DASHBOARD TOKO</span>
+        </button>
+        {showSubMenuDashboardToko && (
+          <ul className="pl-6">
+            {Array.from({ length: 10 }, (_, i) => (
+              <li key={i}>
+                <Link
+                  to={`/toko/${i + 1}`}
+                  className="flex items-center p-2 hover:bg-blue-500"
+                >
+                  <FaStore className="text-sm" />
+                  <span className="ml-2">Toko {i + 1}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
 
         {/* LAPORAN */}
         <button
@@ -93,30 +123,6 @@ const Sidebar = () => {
                 <span className="ml-2">Laporan Keuangan</span>
               </Link>
             </li>
-
-            {/* Laporan Penjualan Toko */}
-            <button
-              onClick={() => setShowSubMenu(!showSubMenu)}
-              className="w-full flex items-center p-2 hover:bg-blue-500 text-left"
-            >
-              <FaStore className="text-lg" />
-              <span className="ml-2">Laporan Penjualan Toko</span>
-            </button>
-            {showSubMenu && (
-              <ul className="pl-6">
-                {Array.from({ length: 10 }, (_, i) => (
-                  <li key={i}>
-                    <Link
-                      to={`/sales-report/toko${i + 1}`}
-                      className="flex items-center p-2 hover:bg-blue-500"
-                    >
-                      <FaStore className="text-sm" />
-                      <span className="ml-2">Toko {i + 1}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
           </ul>
         )}
 
@@ -335,12 +341,13 @@ const Sidebar = () => {
           </ul>
         )}
       </nav>
-      <div className="flex items-center mt-6 p-8 ms-6">
+      <div className="p-4">
         <button
-          className="logout-btn px-10 py-2 bg-red-500 text-white hover:bg-green-500 rounded-lg"
-          onClick={handleLogout}
+          onClick={onLogout}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg"
         >
-          <LogOut size={30} /> <span>Keluar</span>
+          <LogOut size={20} />
+          <span>Keluar</span>
         </button>
       </div>
     </div>
