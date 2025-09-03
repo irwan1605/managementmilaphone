@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
-import { Document, Packer, Paragraph, Table, TableCell, TableRow, TextRun } from "docx";
+import "./Navbar.css";
+import { LogOut } from "lucide-react";
 
-const Navbar = ({ user, handleLogout, isAuthenticated }) => {
+const Navbar = ({ user, onLogout, isAuthenticated }) => {
   const [showWhatsAppDropdown, setShowWhatsAppDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -20,66 +19,11 @@ const Navbar = ({ user, handleLogout, isAuthenticated }) => {
     { name: "PIC Toko 5", phone: "6287878712342" },
   ];
 
-  // === EXPORT TO EXCEL ===
-  const handleExportExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(picContacts);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "PIC Contacts");
-    XLSX.writeFile(workbook, "PIC_Contacts.xlsx");
-  };
-
-  // === EXPORT TO WORD ===
-  const handleExportWord = async () => {
-    const tableRows = picContacts.map(
-      (contact) =>
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [new Paragraph(contact.name)],
-            }),
-            new TableCell({
-              children: [new Paragraph(contact.phone)],
-            }),
-          ],
-        })
-    );
-
-    const doc = new Document({
-      sections: [
-        {
-          properties: {},
-          children: [
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: "Daftar PIC Contacts",
-                  bold: true,
-                  size: 28,
-                }),
-              ],
-            }),
-            new Table({
-              rows: [
-                new TableRow({
-                  children: [
-                    new TableCell({
-                      children: [new Paragraph("Nama")],
-                    }),
-                    new TableCell({
-                      children: [new Paragraph("Nomor HP")],
-                    }),
-                  ],
-                }),
-                ...tableRows,
-              ],
-            }),
-          ],
-        },
-      ],
-    });
-
-    const blob = await Packer.toBlob(doc);
-    saveAs(blob, "PIC_Contacts.docx");
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    if (typeof onLogout === "function") onLogout(); // App.jsx akan setUser(null)
+    // Tidak perlu navigate(); ketika user null,
+    // App.jsx otomatis render branch login dan route "*" → "/"
   };
 
   useEffect(() => {
@@ -108,20 +52,6 @@ const Navbar = ({ user, handleLogout, isAuthenticated }) => {
           placeholder="Search..."
           className="border border-gray-300 px-4 py-2 rounded"
         />
-
-        {/* Tombol Export */}
-        <button
-          onClick={handleExportExcel}
-          className="px-4 py-2 bg-blue-500 text-white hover:bg-blue-700 rounded-lg"
-        >
-          Export Excel
-        </button>
-        <button
-          onClick={handleExportWord}
-          className="px-4 py-2 bg-purple-500 text-white hover:bg-purple-700 rounded-lg"
-        >
-          Export Word
-        </button>
 
         {/* Chat WhatsApp button */}
         <div className="relative">
@@ -173,18 +103,26 @@ const Navbar = ({ user, handleLogout, isAuthenticated }) => {
                 <Link to={`/toko/${user.toko[0]}`}>Toko {user.toko[0]}</Link>
               </>
             )}
-
-            <button
-              onClick={handleLogout}
-              className="bg-red-500 px-4 py-1 rounded text-white"
-            >
-              Logout
-            </button>
           </div>
         ) : (
-          <div className="flex gap-4">
-            <Link to="/login">Login</Link>
-            <Link to="/register">Register</Link>
+          <div className="flex gap-4 ">
+            {/* ⬇️⬇️ Perubahan di sini: Login ke "/" (halaman login) */}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="logout-btn "
+            >
+              <LogOut size={18} className="logout-icon " />
+              <span>Logout</span>
+            </button>
+
+            {/* Register tetap ke "/register" */}
+            <Link
+              className="px-4 py-2 bg-blue-500 text-white hover:bg-blue-700 rounded-lg"
+              to="./register"
+            >
+              Register
+            </Link>
           </div>
         )}
       </div>

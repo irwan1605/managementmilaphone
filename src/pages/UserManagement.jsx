@@ -1,230 +1,320 @@
-import React, { useState } from "react";
+// UserManagement.jsx
+import React, { useEffect, useState } from "react";
+import defaultUsers from "../data/UserManagementRole";
 
-const UserManagement = () => {
-  // Dummy data untuk user
-  const [users, setUsers] = useState([
-    { id: 1, name: "Admin Toko Pusat", role: "admin", store: "Toko Pusat" },
-    { id: 2, name: "User Toko Cabang 1", role: "user", store: "Toko Cabang 1" },
-    { id: 3, name: "User Toko Cabang 2", role: "user", store: "Toko Cabang 2" },
-    { id: 4, name: "User Toko Cabang 3", role: "user", store: "Toko Cabang 3" },
-    { id: 5, name: "User Toko Cabang 4", role: "user", store: "Toko Cabang 4" },
-    { id: 6, name: "User Toko Cabang 5", role: "user", store: "Toko Cabang 5" },
-    { id: 7, name: "User Toko Cabang 6", role: "user", store: "Toko Cabang 6" },
-    { id: 8, name: "User Toko Cabang 7", role: "user", store: "Toko Cabang 7" },
-    { id: 9, name: "User Toko Cabang 8", role: "user", store: "Toko Cabang 8" },
-    {
-      id: 10,
-      name: "User Toko Cabang 9",
-      role: "user",
-      store: "Toko Cabang 9",
-    },
-    {
-      id: 11,
-      name: "User Toko Cabang 10",
-      role: "user",
-      store: "Toko Cabang 10",
-    },
-  ]);
+const tokoOptions = Array.from({ length: 10 }, (_, i) => i + 1);
 
-  // State for the new user input form
-  const [newUser, setNewUser] = useState({
-    id: '',
-    name: '',
-    role: '',
-    store: '',
+export default function UserManagement() {
+  const [users, setUsers] = useState(() => {
+    try {
+      const ls = JSON.parse(localStorage.getItem("users"));
+      return Array.isArray(ls) ? ls : defaultUsers;
+    } catch {
+      return defaultUsers;
+    }
   });
-  
-  // Function to handle form input change
-  const handleInputChange = (e) => {
-    setNewUser({
-      ...newUser,
-      [e.target.name]: e.target.value,
-    });
+
+  useEffect(() => {
+    localStorage.setItem("users", JSON.stringify(users));
+  }, [users]);
+
+  // ---- form tambah ----
+  const [form, setForm] = useState({
+    username: "",
+    password: "",
+    role: "pic_toko",
+    toko: 1,
+    name: "",
+  });
+
+  const addUser = () => {
+    if (!form.username || !form.password) {
+      alert("Username & password wajib diisi.");
+      return;
+    }
+    const finalRole = form.role === "superadmin" ? "superadmin" : `pic_toko${form.toko}`;
+    const newUser = {
+      username: form.username.trim(),
+      password: form.password,
+      role: finalRole,
+      toko: form.role === "superadmin" ? null : Number(form.toko),
+      name: form.name || form.username.trim(),
+    };
+    if (users.some((u) => u.username === newUser.username)) {
+      alert("Username sudah dipakai.");
+      return;
+    }
+    setUsers((prev) => [newUser, ...prev]);
+    setForm({ username: "", password: "", role: "pic_toko", toko: 1, name: "" });
   };
 
-  // Function to handle adding a new user
-  const handleAddUser = (e) => {
-    e.preventDefault();
-    // Generate a new ID for the new user
-    const newId = users.length + 1;
-    
-    // Create the new user object
-    const userToAdd = { id: newId, ...newUser };
+  // ---- edit ----
+  const [editing, setEditing] = useState(null); // username yang sedang diedit
+  const [draft, setDraft] = useState(null);
 
-    // Add the new user to the users array
-    setUsers([...users, userToAdd]);
-
-    // Reset form input
-    setNewUser({
-      name: '',
-      role: '',
-      toko: '',
-    });
+  const beginEdit = (u) => {
+    setEditing(u.username);
+    setDraft({ ...u });
   };
-
-  // State untuk menyimpan user yang sedang diedit
-  const [editUser, setEditUser] = useState(null);
-
-  // State untuk mengontrol modal edit
-  const [isEditing, setIsEditing] = useState(false);
-
-  // Fungsi untuk membuka modal edit
-  const handleEditClick = (user) => {
-    setEditUser(user);
-    setIsEditing(true);
+  const cancelEdit = () => {
+    setEditing(null);
+    setDraft(null);
   };
-
-  // Fungsi untuk menyimpan perubahan
-  const handleSaveEdit = () => {
-    setUsers((prevUsers) =>
-      prevUsers.map((user) => (user.id === editUser.id ? editUser : user))
+  const saveEdit = () => {
+    if (!draft.username || !draft.password) {
+      alert("Username & password wajib diisi.");
+      return;
+    }
+    setUsers((prev) =>
+      prev.map((u) => (u.username === editing ? { ...draft } : u))
     );
-    setIsEditing(false); // Tutup modal setelah disimpan
+    cancelEdit();
   };
 
-  // Fungsi untuk menghapus user
-  const deleteUser = (id) => {
-    setUsers(users.filter((user) => user.id !== id));
+  // ---- delete ----
+  const del = (username) => {
+    if (!window.confirm("Hapus user ini?")) return;
+    setUsers((prev) => prev.filter((u) => u.username !== username));
+  };
+
+  // helper role/toko editor
+  const rolePieces = (role, toko) => {
+    if (role === "superadmin") return { base: "superadmin", toko: null };
+    const match = /^pic_toko(\d+)$/.exec(role || "");
+    return { base: "pic_toko", toko: Number(toko ?? (match ? match[1] : 1)) };
+    // base = "superadmin" | "pic_toko"
   };
 
   return (
-    <div className="bg-white shadow-md rounded-lg p-6">
-      <h1 className="text-2xl font-bold mb-4">User Management</h1>
-
-      {/* Tombol download*/}
-      <div className="mb-4 flex items-center">
-        <button
-          // onClick={handleDownloadExcel}
-          className="bg-blue-500 text-white px-4 py-2 rounded mr-4"
-        >
-          Download Excel
-        </button>
-
-        <input
-          type="text"
-          placeholder="Search reports..."
-          // value={searchTerm}
-          // onChange={(e) => setSearchTerm(e.target.value)}
-          className="border border-gray-300 rounded px-4 py-2"
-        />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold">User Management</h1>
+        <p className="text-slate-600">Kelola pengguna, password, role, dan akses toko.</p>
       </div>
 
-      <table className="min-w-full bg-white border">
-        <thead className="bg-gray-200">
-          <tr>
-            <th className="py-2 px-4 border text-left">ID</th>
-            <th className="py-2 px-4 border text-left">Nama User</th>
-            <th className="py-2 px-4 border">Role</th>
-            <th className="py-2 px-4 border">Store</th>
-            <th className="py-2 px-4 border">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user.id}>
-              <td className="py-2 px-4 border-b">{user.id}</td>
-              <td className="border-t py-2 px-4 text-left">{user.name}</td>
-              <td className="border-t py-2 px-4 text-center">{user.role}</td>
-              <td className="border-t py-2 px-4 text-center">{user.store}</td>
-              <td className="border-t py-2 px-4 text-center">
-                <button
-                  onClick={() => deleteUser(user.id)}
-                  className="bg-red-500 hover:bg-red-700 text-white font-bold ml-4 py-2 px-4 rounded-lg"
-                >
-                  Hapus
-                </button>
-                <button
-                  className="bg-blue-500  hover:bg-blue-700 text-white font-bold ml-4 px-4 py-2 rounded-lg"
-                  onClick={() => handleEditClick(user)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="bg-blue-500  hover:bg-blue-700 text-white font-bold ml-4 px-4 py-2 rounded-lg"
-                  onClick={() => handleEditClick(user)}
-                >
-                  Tambahkan Data
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* Modal untuk edit user */}
-      {isEditing && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 px-8">
-          <div className="bg-white p-8 px-8 rounded-lg shadow-lg">
-            <h2 className="text-xl font-bold mb-4 px-32">Edit User</h2>
-
-            {/* Form untuk edit user */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium">Name</label>
-              <input
-                type="text"
-                value={editUser.name}
-                onChange={(e) =>
-                  setEditUser({ ...editUser, name: e.target.value })
-                }
-                className="border border-gray-300 rounded px-4 py-2 w-full"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium">Role</label>
-              <select
-                value={editUser.role}
-                onChange={(e) =>
-                  setEditUser({ ...editUser, role: e.target.value })
-                }
-                className="border border-gray-300 rounded px-4 py-2 w-full"
-              >
-                <option value="Admin">Admin</option>
-                <option value="User">User</option>
-              </select>
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium">Store</label>
-              <select
-                value={editUser.store}
-                onChange={(e) =>
-                  setEditUser({ ...editUser, store: e.target.value })
-                }
-                className="border border-gray-300 rounded px-4 py-2 w-full"
-              >
-                <option value="Toko Pusat">Toko Pusat</option>
-                <option value="Cabang 1">Cabang 1</option>
-                <option value="Cabang 2">Cabang 2</option>
-                <option value="Cabang 1">Cabang 3</option>
-                <option value="Cabang 2">Cabang 4</option>
-                <option value="Cabang 1">Cabang 5</option>
-                <option value="Cabang 2">Cabang 6</option>
-                <option value="Cabang 1">Cabang 7</option>
-                <option value="Cabang 2">Cabang 8</option>
-                <option value="Cabang 1">Cabang 9</option>
-                <option value="Cabang 2">Cabang 10</option>
-              </select>
-            </div>
-
-            {/* Tombol Save dan Cancel */}
-            <div className="flex justify-end">
-              <button
-                onClick={handleSaveEdit}
-                className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
-              >
-                Save
-              </button>
-              <button
-                onClick={() => setIsEditing(false)}
-                className="bg-gray-500 text-white px-4 py-2 rounded"
-              >
-                Cancel
-              </button>
-            </div>
+      {/* Form Tambah */}
+      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+        <h2 className="text-lg font-semibold mb-3">Tambah User</h2>
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+          <div className="md:col-span-2">
+            <label className="text-xs text-slate-600">Nama Lengkap (opsional)</label>
+            <input
+              className="w-full border rounded px-2 py-1"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="Nama lengkap"
+            />
           </div>
+          <div>
+            <label className="text-xs text-slate-600">Username</label>
+            <input
+              className="w-full border rounded px-2 py-1"
+              value={form.username}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
+              placeholder="username"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-600">Password</label>
+            <input
+              type="text"
+              className="w-full border rounded px-2 py-1"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              placeholder="password"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-600">Role</label>
+            <select
+              className="w-full border rounded px-2 py-1"
+              value={form.role}
+              onChange={(e) => setForm({ ...form, role: e.target.value })}
+            >
+              <option value="pic_toko">pic_toko</option>
+              <option value="superadmin">superadmin</option>
+            </select>
+          </div>
+          {form.role !== "superadmin" && (
+            <div>
+              <label className="text-xs text-slate-600">Toko</label>
+              <select
+                className="w-full border rounded px-2 py-1"
+                value={form.toko}
+                onChange={(e) => setForm({ ...form, toko: Number(e.target.value) })}
+              >
+                {tokoOptions.map((n) => (
+                  <option key={n} value={n}>
+                    Toko {n}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
-      )}
+        <div className="mt-3">
+          <button
+            onClick={addUser}
+            className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm font-semibold shadow-sm"
+          >
+            Tambah
+          </button>
+        </div>
+      </div>
+
+      {/* Tabel Users */}
+      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold">Daftar User</h2>
+          <span className="text-sm text-slate-500">{users.length} user</span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-50 text-slate-600">
+              <tr>
+                <th className="px-3 py-2 text-left">Username</th>
+                <th className="px-3 py-2 text-left">Password</th>
+                <th className="px-3 py-2 text-left">Nama</th>
+                <th className="px-3 py-2 text-left">Role</th>
+                <th className="px-3 py-2 text-left">Toko</th>
+                <th className="px-3 py-2 text-left">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((u) => {
+                const isEdit = editing === u.username;
+                if (isEdit) {
+                  const rp = rolePieces(draft.role, draft.toko);
+                  return (
+                    <tr key={u.username} className="border-b last:border-0 bg-slate-50/50">
+                      <td className="px-3 py-2">{u.username}</td>
+                      <td className="px-3 py-2">
+                        <input
+                          className="border rounded px-2 py-1"
+                          value={draft.password}
+                          onChange={(e) =>
+                            setDraft((d) => ({ ...d, password: e.target.value }))
+                          }
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          className="border rounded px-2 py-1"
+                          value={draft.name || ""}
+                          onChange={(e) =>
+                            setDraft((d) => ({ ...d, name: e.target.value }))
+                          }
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <select
+                          className="border rounded px-2 py-1"
+                          value={rp.base}
+                          onChange={(e) => {
+                            const base = e.target.value;
+                            const role =
+                              base === "superadmin" ? "superadmin" : `pic_toko${rp.toko || 1}`;
+                            setDraft((d) => ({
+                              ...d,
+                              role,
+                              toko: base === "superadmin" ? null : (rp.toko || 1),
+                            }));
+                          }}
+                        >
+                          <option value="pic_toko">pic_toko</option>
+                          <option value="superadmin">superadmin</option>
+                        </select>
+                      </td>
+                      <td className="px-3 py-2">
+                        {draft.role === "superadmin" ? (
+                          <span className="text-slate-400">—</span>
+                        ) : (
+                          <select
+                            className="border rounded px-2 py-1"
+                            value={rp.toko || 1}
+                            onChange={(e) => {
+                              const toko = Number(e.target.value);
+                              const role = `pic_toko${toko}`;
+                              setDraft((d) => ({ ...d, toko, role }));
+                            }}
+                          >
+                            {tokoOptions.map((n) => (
+                              <option key={n} value={n}>
+                                Toko {n}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={saveEdit}
+                            className="px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700"
+                          >
+                            Simpan
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            className="px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200"
+                          >
+                            Batal
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
+
+                const { base, toko } = rolePieces(u.role, u.toko);
+                return (
+                  <tr key={u.username} className="border-b last:border-0">
+                    <td className="px-3 py-2">{u.username}</td>
+                    <td className="px-3 py-2">
+                      <span className="font-mono">{u.password}</span>
+                    </td>
+                    <td className="px-3 py-2">{u.name || "—"}</td>
+                    <td className="px-3 py-2">
+                      {base === "superadmin" ? "superadmin" : "pic_toko"}
+                    </td>
+                    <td className="px-3 py-2">
+                      {base === "superadmin" ? "—" : `Toko ${toko}`}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => beginEdit(u)}
+                          className="px-2 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => del(u.username)}
+                          className="px-2 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700"
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {users.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
+                    Belum ada user.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="mt-3 text-xs text-slate-500">
+          Data user disimpan pada <code>localStorage.users</code> dan digunakan untuk proses login.
+        </p>
+      </div>
     </div>
   );
-};
-
-export default UserManagement;
+}
