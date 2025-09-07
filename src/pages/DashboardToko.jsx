@@ -1,24 +1,14 @@
+// src/pages/DashboardToko.jsx
 import React, { useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import * as MasterData from "../data/MasterDataPenjualan";
+// ✅ Satu sumber label toko
+import TOKO_LABELS from "../data/TokoLabels";
 
-// ---------------- Nama Toko Override ----------------
-const TOKO_NAME_MAP = {
-  1: "Toko Cilangkap",
-  2: "Toko KONTEN LIVE",
-  3: "Toko GAS ALAM",
-  4: "Toko KOTA WISATA", // pakai yang terakhir kamu minta
-  5: "Toko CIRACAS",
-  6: "Toko METLAND 1",
-  7: "Toko METLAND 2",
-  8: "Toko PITARA",
-  // 9, 10 fallback default
-};
-
-// ---------------- Ambil master toko dari MasterData + override ----------------
+// ===== Ambil daftar toko dari MasterData (opsional; jadi sumber sekunder) =====
 function resolveTokoList(md) {
   const candArray = md.MASTER_TOKO || md.TOKO_LIST || md.tokoList || md.default || md.toko || [];
-  const toObj = (id, name) => ({ id, name: TOKO_NAME_MAP[id] ?? name });
+  const toObj = (id, name) => ({ id, name });
 
   if (Array.isArray(candArray)) {
     const arr = candArray
@@ -34,41 +24,36 @@ function resolveTokoList(md) {
         return null;
       })
       .filter(Boolean);
-    // gabung override yang mungkin belum ada
-    Object.entries(TOKO_NAME_MAP).forEach(([idStr, nm]) => {
+    // tambahkan override label bila belum ada
+    Object.entries(TOKO_LABELS).forEach(([idStr, label]) => {
       const id = Number(idStr);
-      if (!arr.find((x) => x.id === id)) arr.push({ id, name: nm });
+      if (!arr.find((x) => x.id === id)) arr.push({ id, name: label });
     });
     return arr.sort((a, b) => a.id - b.id);
   }
 
   if (candArray && typeof candArray === "object") {
     const arr = Object.entries(candArray)
-      .map(([k, v]) => {
-        const id = Number(k);
-        const rawName = String(v);
-        return toObj(id, rawName);
-      })
+      .map(([k, v]) => toObj(Number(k), String(v)))
       .filter(Boolean);
-    Object.entries(TOKO_NAME_MAP).forEach(([idStr, nm]) => {
+    Object.entries(TOKO_LABELS).forEach(([idStr, label]) => {
       const id = Number(idStr);
-      if (!arr.find((x) => x.id === id)) arr.push({ id, name: nm });
+      if (!arr.find((x) => x.id === id)) arr.push({ id, name: label });
     });
     return arr.sort((a, b) => a.id - b.id);
   }
 
   // fallback: hanya override
-  return Object.entries(TOKO_NAME_MAP)
+  return Object.entries(TOKO_LABELS)
     .map(([id, name]) => ({ id: Number(id), name }))
     .sort((a, b) => a.id - b.id);
 }
 
-// ---------------- Ekstrak master produk/brand/warna/kategori ----------------
+// ===== Ekstrak master produk/brand/warna/kategori dari MasterData =====
 function extractMasterSets(md) {
   const candidates = Object.values(md).filter((v) => Array.isArray(v));
   const prodRows = [];
 
-  // Cari array of objects yang terlihat seperti katalog produk (ada srp/grosir/type/brand)
   for (const arr of candidates) {
     if (!Array.isArray(arr) || arr.length === 0) continue;
     const sample = arr[0];
@@ -79,7 +64,6 @@ function extractMasterSets(md) {
         ["sepedalistrik", "sepeda listrik", "type", "tipe", "produk", "product", "name", "nama"].includes(k)
       );
       if (hasPrice && hasName) {
-        // Normalisasi semua row
         for (const r of arr) {
           const lower = Object.fromEntries(
             Object.entries(r).map(([k, v]) => [String(k).toLowerCase(), v])
@@ -116,7 +100,6 @@ function extractMasterSets(md) {
     }
   }
 
-  // set unik
   const brands = Array.from(new Set(prodRows.map((r) => r.brand).filter(Boolean))).sort();
   const colors = Array.from(new Set(prodRows.map((r) => r.warna).filter(Boolean))).sort();
   const categories = Array.from(new Set(prodRows.map((r) => r.kategori).filter(Boolean))).sort();
@@ -136,7 +119,20 @@ function formatCurrency(n) {
   }
 }
 
-// ---------------- Normalisasi baris dari Excel (PO/LIST) ----------------
+function parseXlsxDate(v) {
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v === "number") {
+    const d = XLSX.SSF?.parse_date_code ? XLSX.SSF.parse_date_code(v) : null;
+    if (d) {
+      const dt = new Date(Date.UTC(d.y, d.m - 1, d.d));
+      return dt.toISOString().slice(0, 10);
+    }
+  }
+  if (typeof v === "string" && v.trim()) return v;
+  return new Date().toISOString().slice(0, 10);
+}
+
+// ===== Normalisasi baris dari Excel =====
 function normalizeRowFromExcel(row) {
   const lower = Object.fromEntries(
     Object.entries(row).map(([k, v]) => [String(k).trim().toLowerCase(), v])
@@ -144,25 +140,14 @@ function normalizeRowFromExcel(row) {
   const pick = (...names) => {
     for (const n of names) {
       const v = lower[n.toLowerCase()];
-      if (v !== undefined && v !== null && v !== "") return v;
+      if (v !== undefined && v !== null && `${v}` !== "") return v;
     }
     return undefined;
   };
 
-  // tanggal
-  let tanggal = pick("tanggal", "tgl transaksi", "tgl", "tanggal transaksi", "date");
-  if (tanggal instanceof Date) {
-    tanggal = tanggal.toISOString().slice(0, 10);
-  } else if (typeof tanggal === "number") {
-    const d = XLSX.SSF.parse_date_code(tanggal);
-    if (d) {
-      const dt = new Date(Date.UTC(d.y, d.m - 1, d.d));
-      tanggal = dt.toISOString().slice(0, 10);
-    }
-  } else if (typeof tanggal === "string") {
-    // biarkan
-  }
-
+  const tanggal = parseXlsxDate(
+    pick("tanggal", "tgl transaksi", "tgl", "tanggal transaksi", "date")
+  );
   const brand = pick("brand", "merk", "merek");
   const kategori = pick("kategori", "category") || (brand ? "Motor Listrik" : "Lainnya");
   const produk =
@@ -173,43 +158,41 @@ function normalizeRowFromExcel(row) {
   const srp = Number(pick("srp", "price", "harga") || 0);
   const grosir = Number(pick("grosir") || 0);
   const tokoName = pick("toko", "store", "outlet", "nama toko");
-
-  // default harga pakai grosir bila ada, kalau tidak SRP
   const hargaType = grosir ? "GROSIR" : "SRP";
   const harga = hargaType === "GROSIR" ? grosir : srp;
 
   return { tanggal, brand, kategori, produk, warna, qty, srp, grosir, hargaType, harga, tokoName };
 }
 
-// ---------------- Filter baris Excel berdasarkan toko aktif ----------------
 function filterByToko(rows, tokoName) {
   if (!tokoName) return rows;
   const t = String(tokoName).trim().toLowerCase();
   return rows.filter((r) => {
-    if (!r.tokoName) return true;
+    if (!r.tokoName) return true; // jika kolom toko tidak ada, terima semua
     return String(r.tokoName).trim().toLowerCase() === t;
   });
 }
 
-export default function DashboardToko({ tokoId, initialData = [] }) {
+export default function DashboardToko({ user, tokoId, initialData = [] }) {
+  // ===== Nama toko (override label -> master -> fallback) =====
   const tokoList = useMemo(() => resolveTokoList(MasterData), []);
   const tokoName = useMemo(() => {
-    const found = tokoList.find((t) => t.id === Number(tokoId));
-    return found?.name || TOKO_NAME_MAP[Number(tokoId)] || `Toko ${tokoId}`;
-  }, [tokoList, tokoId]);
+    const id = Number(tokoId);
+    return TOKO_LABELS[id] || tokoList.find((t) => t.id === id)?.name || `Toko ${id}`;
+  }, [tokoId, tokoList]);
 
+  // ===== Master sets untuk dropdown =====
   const { products, brands, colors, categories } = useMemo(
     () => extractMasterSets(MasterData),
     []
   );
 
-  // ---------- State data gabungan ----------
+  // ===== Data baris =====
   const [rows, setRows] = useState(() => {
-    // normalisasi initialData ke bentuk baru (tambahkan field yang kurang)
     return (initialData || []).map((r, i) => ({
       id: r.id ?? i + 1,
       tanggal: r.tanggal,
-      brand: r.brand ?? r.kategori ?? "",
+      brand: r.brand ?? "",
       kategori: r.kategori ?? "",
       produk: r.produk,
       warna: r.warna ?? "",
@@ -222,7 +205,7 @@ export default function DashboardToko({ tokoId, initialData = [] }) {
     }));
   });
 
-  // ---------- Ringkasan ----------
+  // ===== Ringkasan =====
   const { totalTransaksi, totalQty, totalOmzet } = useMemo(() => {
     const totals = rows.reduce(
       (acc, row) => {
@@ -236,7 +219,7 @@ export default function DashboardToko({ tokoId, initialData = [] }) {
     return totals;
   }, [rows]);
 
-  // ---------- Form tambah ----------
+  // ===== Form tambah =====
   const fileInputRef = useRef(null);
   const [form, setForm] = useState({
     tanggal: new Date().toISOString().slice(0, 10),
@@ -251,12 +234,10 @@ export default function DashboardToko({ tokoId, initialData = [] }) {
     harga: 0,
   });
 
-  // produk list by brand
   const productOptions = useMemo(() => {
     const filtered = products.filter((p) =>
       form.brand ? String(p.brand).toLowerCase() === String(form.brand).toLowerCase() : true
     );
-    // unique by name
     const seen = new Set();
     return filtered.filter((p) => {
       const key = (p.name || "").toLowerCase();
@@ -266,7 +247,6 @@ export default function DashboardToko({ tokoId, initialData = [] }) {
     });
   }, [products, form.brand]);
 
-  // warna options tergantung produk terpilih (kalau ada), jika tidak, semua warna di brand
   const warnaOptions = useMemo(() => {
     const base = form.produk
       ? products.filter(
@@ -283,7 +263,6 @@ export default function DashboardToko({ tokoId, initialData = [] }) {
     return list.length ? list : colors;
   }, [products, colors, form.brand, form.produk]);
 
-  // ketika ganti produk, isi SRP/GROSIR default dari master
   const applyPriceFromProduct = (prodName, brandName) => {
     const match = products.find(
       (p) =>
@@ -306,21 +285,17 @@ export default function DashboardToko({ tokoId, initialData = [] }) {
     }
   };
 
-  // handlers form
-  const onChangeBrand = (val) => {
-    setForm((f) => ({ ...f, brand: val, produk: "", warna: "" }));
-  };
+  const onChangeBrand = (val) => setForm((f) => ({ ...f, brand: val, produk: "", warna: "" }));
   const onChangeProduk = (val) => {
     setForm((f) => ({ ...f, produk: val }));
     applyPriceFromProduct(val, form.brand);
   };
-  const onChangeHargaType = (val) => {
+  const onChangeHargaType = (val) =>
     setForm((f) => ({
       ...f,
       hargaType: val,
       harga: val === "GROSIR" ? Number(f.grosir || 0) : Number(f.srp || 0),
     }));
-  };
 
   const addRow = () => {
     const newRow = {
@@ -347,7 +322,7 @@ export default function DashboardToko({ tokoId, initialData = [] }) {
     }));
   };
 
-  // ---------- Import Excel ----------
+  // ===== Import Excel =====
   const handleImportExcel = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -388,7 +363,7 @@ export default function DashboardToko({ tokoId, initialData = [] }) {
     }
   };
 
-  // ---------- Export Excel ----------
+  // ===== Export Excel =====
   const handleExportExcel = () => {
     const data = rows.map((r) => ({
       TANGGAL: r.tanggal,
@@ -408,10 +383,11 @@ export default function DashboardToko({ tokoId, initialData = [] }) {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "PO");
     const ymd = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-    XLSX.writeFile(wb, `PO_${tokoName.replace(/\s+/g, "_")}_${ymd}.xlsx`);
+    const safeName = tokoName.replace(/[^\p{L}\p{N}_-]+/gu, "_");
+    XLSX.writeFile(wb, `PO_${safeName}_${ymd}.xlsx`);
   };
 
-  // ---------- Edit/Delete/Approve ----------
+  // ===== Edit / Delete / Approve =====
   const [editingId, setEditingId] = useState(null);
   const [editDraft, setEditDraft] = useState(null);
 
@@ -428,12 +404,14 @@ export default function DashboardToko({ tokoId, initialData = [] }) {
     cancelEdit();
   };
   const deleteRow = (id) => {
-    if (!window.confirm("Hapus baris ini?")) return; // ⬅️ pakai window.confirm
+    if (!window.confirm("Hapus baris ini?")) return;
     setRows((prev) => prev.filter((r) => r.id !== id));
   };
   const approveRow = (id) => {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, approved: true } : r)));
   };
+
+  const canApprove = user?.role === "superadmin";
 
   return (
     <div className="space-y-6">
@@ -476,16 +454,18 @@ export default function DashboardToko({ tokoId, initialData = [] }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
           <div className="text-sm text-slate-500">Total Transaksi</div>
-          <div className="mt-1 text-2xl font-semibold">{totalTransaksi}</div>
+          <div className="mt-1 text-2xl font-semibold">{rows.length}</div>
         </div>
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
           <div className="text-sm text-slate-500">Total Qty</div>
-          <div className="mt-1 text-2xl font-semibold">{totalQty}</div>
+          <div className="mt-1 text-2xl font-semibold">
+            {rows.reduce((a, b) => a + Number(b.qty || 0), 0)}
+          </div>
         </div>
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
           <div className="text-sm text-slate-500">Total Omzet</div>
           <div className="mt-1 text-2xl font-semibold">
-            {formatCurrency(totalOmzet)}
+            {formatCurrency(rows.reduce((a, b) => a + Number(b.harga || 0) * Number(b.qty || 0), 0))}
           </div>
         </div>
       </div>
@@ -733,11 +713,12 @@ export default function DashboardToko({ tokoId, initialData = [] }) {
                           }
                         />
                         <div className="text-[10px] text-slate-500 mt-0.5">
-                          ({editDraft.hargaType}) SRP:{formatCurrency(editDraft.srp)} /
-                          GRS:{formatCurrency(editDraft.grosir)}
+                          ({editDraft.hargaType}) SRP:{formatCurrency(editDraft.srp)} / GRS:{formatCurrency(editDraft.grosir)}
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-right">{formatCurrency((editDraft.harga || 0) * (editDraft.qty || 0))}</td>
+                      <td className="px-3 py-2 text-right">
+                        {formatCurrency((editDraft.harga || 0) * (editDraft.qty || 0))}
+                      </td>
                       <td className="px-3 py-2">
                         <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-[11px]">
                           {editDraft.approved ? "APPROVED" : "DRAFT"}
@@ -784,7 +765,7 @@ export default function DashboardToko({ tokoId, initialData = [] }) {
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex gap-2">
-                        {!row.approved && (
+                        {!row.approved && canApprove && (
                           <button
                             onClick={() => approveRow(row.id)}
                             className="px-2 py-1 text-xs rounded bg-emerald-600 text-white hover:bg-emerald-700"
@@ -822,15 +803,15 @@ export default function DashboardToko({ tokoId, initialData = [] }) {
 
         <p className="mt-3 text-xs text-slate-500">
           Rumus PO: <code>Subtotal = Qty × HargaDipakai</code>. HargaDipakai mengikuti pilihan
-          <code> GROSIR/SRP</code> serta akan otomatis terisi saat memilih produk (jika tersedia di master).
+          <code> GROSIR/SRP</code> dan otomatis terisi saat memilih produk (jika tersedia di master).
           Import Excel mendukung kolom: <code>TANGGAL/Tgl</code>, <code>QTY</code>, <code>SRP/GROSIR</code>,
-          <code> STORE/SEPEDA LISTRIK/TYPE</code>, <code> BRAND</code>, <code> WARNA</code>, dan opsional <code>TOKO</code>.
+          <code> STORE/SEPEDA LISTRIK/TYPE</code>, <code> BRAND</code>, <code> WARNA</code>, opsional <code>TOKO</code>.
         </p>
       </div>
 
       <p className="text-xs text-slate-500">
-        Nama toko diambil dari <code>MasterDataPenjualan.jsx</code> dengan override sesuai instruksi.
-        Jika nama tidak ditemukan, fallback ke <strong>Toko {tokoId}</strong>.
+        Nama toko memakai mapping override dari <code>TokoLabels.js</code>. Jika tidak ditemukan, akan dicari
+        dari <code>MasterDataPenjualan.jsx</code>, lalu fallback ke <strong>Toko {tokoId}</strong>.
       </p>
     </div>
   );

@@ -52,16 +52,15 @@ const generateDummyData = (tokoName) =>
   }));
 
 const initialTokoData = {
-  1: generateDummyData("Toko 1"),
-  2: generateDummyData("Toko 2"),
-  3: generateDummyData("Toko 3"),
-  4: generateDummyData("Toko 4"),
-  5: generateDummyData("Toko 5"),
-  6: generateDummyData("Toko 6"),
-  7: generateDummyData("Toko 7"),
-  8: generateDummyData("Toko 8"),
-  9: generateDummyData("Toko 9"),
-  10: generateDummyData("Toko 10"),
+  1: generateDummyData("CILANGKAP"),
+  2: generateDummyData("KONTEN LIVE"),
+  3: generateDummyData("GAS ALAM"),
+  4: generateDummyData("CITEUREUP"),
+  5: generateDummyData("CIRACAS"),
+  6: generateDummyData("METLAND 1"),
+  7: generateDummyData("METLAND 2"),
+  8: generateDummyData("PITARA"),
+  9: generateDummyData("KOTA WISATA"),
 };
 
 export default function App() {
