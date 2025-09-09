@@ -1,283 +1,452 @@
-import React, { useState } from "react";
+// src/pages/DataManagement.jsx
+import React, { useEffect, useMemo, useState } from "react";
+import * as XLSX from "xlsx";
+import {
+  PAYMENT_METHODS,
+  PRICE_CATEGORIES,
+  MP_PROTECT_OPTIONS,
+  TENOR_OPTIONS,
+  BRAND_LIST,
+  PRODUCT_LIST,
+  WARNA_LIST,
+} from "../data/ListDataPenjualan";
+import { HARGA_PENJUALAN } from "../data/MasterDataHargaPenjualan";
 
-const DataManagement = () => {
-  // Data dummy untuk accessories handphone dan motor listrik
-  const [accessories, setAccessories] = useState([
-    {
-      id: 1,
-      tanggal: "02/01/2024",
-      namaKaryawan: "John Doe",
-      nomorKaryawan: "08176678822",
-      namaPic: "Sarah Lee",
-      nomorPic: "08123456789",
-      hargaModal: "300.000",
-      hargaJual: "500.000",
-      namaBarang: "LCD",
-      nomorMesin: "M123456",
-      nomorImei: "081767890123",
-      phoneType: "iPhone 13 Pro",
-      motorType: "Yamaha E01",
-    },
-    {
-      id: 2,
-      tanggal: "02/01/2024",
-      namaKaryawan: "Jane Smith",
-      nomorKaryawan: "0838456743434",
-      namaPic: "Michael Tan",
-      nomorPic: "08234567890",
-      hargaModal: "1.500.000",
-      hargaJual: "2.000.000",
-      namaBarang: "Anti Gores",
-      nomorMesin: "M234567",
-      nomorImei: "083845678012",
-      phoneType: "Samsung Galaxy S21",
-      motorType: "Gogoro Viva",
-    },
-    {
-      id: 3,
-      tanggal: "02/01/2024",
-      namaKaryawan: "Robert Brown",
-      nomorKaryawan: "081344567891",
-      namaPic: "Alice Wong",
-      nomorPic: "08345678901",
-      hargaModal: "1.300.000",
-      hargaJual: "1.500.000",
-      namaBarang: "LCD",
-      nomorMesin: "M345678",
-      nomorImei: "081334567890",
-      phoneType: "Xiaomi Mi 11",
-      motorType: "NIU NQi GT",
-    },
-    {
-      id: 4,
-      tanggal: "02/01/2024",
-      namaKaryawan: "Emily Johnson",
-      nomorKaryawan: "089876093922",
-      namaPic: "David Lim",
-      nomorPic: "08456789012",
-      hargaModal: "23.000.000",
-      hargaJual: "25.000.000",
-      namaBarang: "Baterai",
-      nomorMesin: "M456789",
-      nomorImei: "08987654321",
-      phoneType: "iPhone 12",
-      motorType: "Vespa Elettrica",
-    },
-    {
-      id: 5,
-      tanggal: "02/01/2024",
-      namaKaryawan: "Chris Evans",
-      nomorKaryawan: "5678904321",
-      namaPic: "James Lee",
-      nomorPic: "08567890123",
-      hargaModal: "8.300.000",
-      hargaJual: "9.000.000",
-      namaBarang: "Baterai ",
-      nomorMesin: "M567890",
-      nomorImei: "5678901234",
-      phoneType: "Samsung Galaxy S21",
-      motorType: "Honda PCX Electric",
-    },
-  ]);
+const STORAGE_MASTER_PRICE = "dm_master_harga";
+const STORAGE_REF_LISTS = "dm_ref_lists";
 
-  // State untuk form input accessories baru
-  const [newAccessory, setNewAccessory] = useState({
-    id: "",
-    tanggal: "",
-    namaKaryawan: "",
-    namaPic: "",
-    nomorPic: "",
-    nomorKaryawan: "",
-    harga: "",
-    namaBarang: "",
-    nomorMesin: "",
-    phoneType: "",
-    nomorImei: "",
-    motorType: "",
+const toNumber = (v) =>
+  v === "" || v == null ? 0 : Number(String(v).replace(/[^\d.-]/g, "")) || 0;
+const fmt = (n) =>
+  (Number(n) || 0).toLocaleString("id-ID", { style: "currency", currency: "IDR" });
+
+const defaultRefs = {
+  paymentMethods: PAYMENT_METHODS,
+  priceCategories: PRICE_CATEGORIES,
+  mpProtectOptions: MP_PROTECT_OPTIONS,
+  tenorOptions: TENOR_OPTIONS,
+  brandList: BRAND_LIST,
+  productList: PRODUCT_LIST,
+  warnaList: WARNA_LIST,
+};
+
+export default function DataManagement() {
+  // master harga (brand, name, warna, srp, grosir, kategori)
+  const [master, setMaster] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_MASTER_PRICE) || "null");
+      return Array.isArray(saved) && saved.length ? saved : HARGA_PENJUALAN;
+    } catch {
+      return HARGA_PENJUALAN;
+    }
   });
 
-  // Fungsi untuk menangani perubahan input form
-  const handleChange = (e) => {
-    setNewAccessory({ ...newAccessory, [e.target.name]: e.target.value });
+  // referensi list
+  const [refs, setRefs] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_REF_LISTS) || "null");
+      return saved || defaultRefs;
+    } catch {
+      return defaultRefs;
+    }
+  });
+
+  const [form, setForm] = useState({
+    brand: "",
+    name: "",
+    warna: "",
+    srp: 0,
+    grosir: 0,
+    kategori: "",
+    id: Date.now(),
+  });
+
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_MASTER_PRICE, JSON.stringify(master));
+  }, [master]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_REF_LISTS, JSON.stringify(refs));
+  }, [refs]);
+
+  const filtered = useMemo(() => {
+    const q = (search || "").toLowerCase();
+    return master.filter(
+      (r) =>
+        (r.brand || "").toLowerCase().includes(q) ||
+        (r.name || "").toLowerCase().includes(q) ||
+        (r.warna || "").toLowerCase().includes(q)
+    );
+  }, [master, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  const onChange = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const addRow = () => {
+    const row = {
+      brand: form.brand,
+      name: form.name,
+      warna: form.warna,
+      srp: toNumber(form.srp),
+      grosir: toNumber(form.grosir),
+      kategori: form.kategori || "",
+      __id: Date.now(),
+    };
+    setMaster((prev) => [row, ...prev]);
+    setForm({ brand: "", name: "", warna: "", srp: 0, grosir: 0, kategori: "", id: Date.now() });
+  };
+  const editRow = (rid) => {
+    const r = master[rid];
+    if (!r) return;
+    setForm({
+      brand: r.brand,
+      name: r.name,
+      warna: r.warna,
+      srp: r.srp,
+      grosir: r.grosir,
+      kategori: r.kategori,
+      id: rid,
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const updateRow = () => {
+    const idx = typeof form.id === "number" ? form.id : -1;
+    if (idx < 0 || !master[idx]) {
+      alert("Pilih baris yang akan diupdate (klik Edit).");
+      return;
+    }
+    const row = {
+      brand: form.brand,
+      name: form.name,
+      warna: form.warna,
+      srp: toNumber(form.srp),
+      grosir: toNumber(form.grosir),
+      kategori: form.kategori || "",
+    };
+    setMaster((prev) => prev.map((x, i) => (i === idx ? row : x)));
+    setForm({ brand: "", name: "", warna: "", srp: 0, grosir: 0, kategori: "", id: Date.now() });
+  };
+  const deleteRow = (rid) => {
+    if (!window.confirm("Hapus baris ini?")) return;
+    setMaster((prev) => prev.filter((_, i) => i !== rid));
   };
 
-  // Fungsi untuk menambahkan accessories baru ke dalam daftar
-  const handleAddAccessory = () => {
-    const newAccessoryWithId = { ...newAccessory, id: accessories.length + 1 };
-    setAccessories([...accessories, newAccessoryWithId]);
-    setNewAccessory({
-      tanggal: "",
-      namaKaryawan: "",
-      namaPic: "",
-      nomorPic: "",
-      phone: "",
-      hargaModal: "",
-      hargaJual: "",
-      namaBarang: "",
-      nomorMesin: "",
-      phoneType: "",
-      nomorImei: "",
-      motorType: "",
-    }); // Reset form
+  // Refs management (minimal)
+  const addRef = (key, value) => {
+    if (!value) return;
+    setRefs((r) => ({ ...r, [key]: Array.from(new Set([...(r[key] || []), value])) }));
+  };
+  const deleteRef = (key, value) => {
+    setRefs((r) => ({ ...r, [key]: (r[key] || []).filter((x) => x !== value) }));
+  };
+
+  // Export/Import master harga
+  const exportExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(master);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "MasterHarga");
+    XLSX.writeFile(wb, "MasterDataHargaPenjualan.xlsx");
+  };
+  const importExcel = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws);
+      // validasi minimal fields
+      const rows = data
+        .map((d) => ({
+          brand: d.brand ?? d.Brand ?? "",
+          name: d.name ?? d.Produk ?? d.Nama ?? "",
+          warna: d.warna ?? d.Warna ?? "",
+          srp: toNumber(d.srp ?? d.SRP ?? 0),
+          grosir: toNumber(d.grosir ?? d.Grosir ?? 0),
+          kategori: d.kategori ?? d.Kategori ?? "",
+        }))
+        .filter((r) => r.name);
+      setMaster((prev) => [...rows, ...prev]);
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Master Data Management</h1>
+    <div className="p-4 space-y-6">
+      <h2 className="text-xl font-bold">Data Management (Master)</h2>
 
-      {/* Form Input Accessories Baru */}
-      <div className="bg-white p-4 rounded shadow-lg mb-6">
-        <h2 className="text-xl font-semibold mb-4">Tambah Master Data Management</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Form master harga */}
+      <div className="bg-white rounded-lg shadow p-4 grid md:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm">Brand</label>
           <input
-            type="text"
-            name="tanggal"
-            value={newAccessory.tanggal}
-            onChange={handleChange}
-            placeholder="Tanggal Update"
-            className="border border-gray-300 p-2 rounded w-full"
+            list="dm-brand"
+            value={form.brand}
+            onChange={(e) => onChange("brand", e.target.value)}
+            className="w-full border rounded p-2"
           />
+          <datalist id="dm-brand">
+            {(refs.brandList || []).map((b) => (
+              <option key={b} value={b} />
+            ))}
+          </datalist>
+        </div>
+        <div>
+          <label className="block text-sm">Nama Produk</label>
           <input
-            type="text"
-            name="namaPic"
-            value={newAccessory.namaPic}
-            onChange={handleChange}
-            placeholder="Nama PIC"
-            className="border border-gray-300 p-2 rounded w-full"
+            list="dm-product"
+            value={form.name}
+            onChange={(e) => onChange("name", e.target.value)}
+            className="w-full border rounded p-2"
           />
+          <datalist id="dm-product">
+            {(refs.productList || []).map((p) => (
+              <option key={p} value={p} />
+            ))}
+          </datalist>
+        </div>
+        <div>
+          <label className="block text-sm">Warna</label>
           <input
-            type="text"
-            name="nomorPic"
-            value={newAccessory.nomorPic}
-            onChange={handleChange}
-            placeholder="Nomor Telepon PIC"
-            className="border border-gray-300 p-2 rounded w-full"
+            list="dm-warna"
+            value={form.warna}
+            onChange={(e) => onChange("warna", e.target.value)}
+            className="w-full border rounded p-2"
           />
+          <datalist id="dm-warna">
+            {(refs.warnaList || []).map((w) => (
+              <option key={w} value={w} />
+            ))}
+          </datalist>
+        </div>
+
+        <div>
+          <label className="block text-sm">SRP</label>
           <input
-            type="text"
-            name="namaKaryawan"
-            value={newAccessory.namaKaryawan}
-            onChange={handleChange}
-            placeholder="Nama Karyawan"
-            className="border border-gray-300 p-2 rounded w-full"
-          />
-          <input
-            type="text"
-            name="nomorKaryawan"
-            value={newAccessory.nomorKaryawan}
-            onChange={handleChange}
-            placeholder="Nomor Telepon Karyawan"
-            className="border border-gray-300 p-2 rounded w-full"
-          />
-          <input
-            type="text"
-            name="hargaModal"
-            value={newAccessory.hargaModal}
-            onChange={handleChange}
-            placeholder="Harga Modal"
-            className="border border-gray-300 p-2 rounded w-full"
-          />
-           <input
-            type="text"
-            name="hargaJual"
-            value={newAccessory.hargaJual}
-            onChange={handleChange}
-            placeholder="Harga Jual"
-            className="border border-gray-300 p-2 rounded w-full"
-          />
-          <input
-            type="text"
-            name="namaBarang"
-            value={newAccessory.namaBarang}
-            onChange={handleChange}
-            placeholder="Nama Barang"
-            className="border border-gray-300 p-2 rounded w-full"
-          />
-          <input
-            type="text"
-            name="nomorImei"
-            value={newAccessory.nomorImei}
-            onChange={handleChange}
-            placeholder="Nomor Emei"
-            className="border border-gray-300 p-2 rounded w-full"
-          />
-          <input
-            type="text"
-            name="phoneType"
-            value={newAccessory.phoneType}
-            onChange={handleChange}
-            placeholder="Tipe Handphone"
-            className="border border-gray-300 p-2 rounded w-full"
-          />
-          <input
-            type="text"
-            name="motorType"
-            value={newAccessory.motorType}
-            onChange={handleChange}
-            placeholder="Tipe Motor Listrik"
-            className="border border-gray-300 p-2 rounded w-full"
-          />
-          <input
-            type="text"
-            name="nomorMesin"
-            value={newAccessory.nomorMesin}
-            onChange={handleChange}
-            placeholder="Nomor Mesin"
-            className="border border-gray-300 p-2 rounded w-full"
+            value={form.srp}
+            onChange={(e) => onChange("srp", toNumber(e.target.value))}
+            className="w-full border rounded p-2"
           />
         </div>
-        <button
-          onClick={handleAddAccessory}
-          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
-        >
-          Tambah Data Management
-        </button>
+        <div>
+          <label className="block text-sm">Grosir</label>
+          <input
+            value={form.grosir}
+            onChange={(e) => onChange("grosir", toNumber(e.target.value))}
+            className="w-full border rounded p-2"
+          />
+        </div>
+        <div>
+          <label className="block text-sm">Kategori</label>
+          <input
+            value={form.kategori}
+            onChange={(e) => onChange("kategori", e.target.value)}
+            className="w-full border rounded p-2"
+            placeholder="(opsional)"
+          />
+        </div>
+
+        <div className="flex gap-2">
+          <button onClick={addRow} className="px-4 py-2 bg-blue-600 text-white rounded">
+            Tambah
+          </button>
+          <button onClick={updateRow} className="px-4 py-2 bg-amber-600 text-white rounded">
+            Update Baris
+          </button>
+          <button onClick={exportExcel} className="px-4 py-2 bg-green-600 text-white rounded">
+            Export Excel
+          </button>
+          <label className="px-4 py-2 bg-gray-100 border rounded cursor-pointer">
+            Import Excel
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={(e) => e.target.files?.[0] && importExcel(e.target.files[0])}
+            />
+          </label>
+          <div className="ml-auto">
+            <input
+              placeholder="Cari brand/produk/warna…"
+              className="border rounded p-2"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Tabel Daftar Accessories */}
-      <div className="bg-white p-4 rounded shadow-lg">
-        <h2 className="text-xl font-semibold mb-4">Daftar Master Data Managemant</h2>
-        <table className="min-w-full bg-white">
-          <thead>
-            <tr>
-              <th className="py-2 px-4 border-b  text-left">ID</th>
-              <th className="py-2 px-4 border-b  text-left">Tanggal Update</th>
-              <th className="py-2 px-4 border-b  text-left">Nama PIC</th>
-              <th className="py-2 px-4 border-b  text-left">Nomor tlp PIC</th>
-              <th className="py-2 px-4 border-b  text-left">Nama Karyawan</th>
-              <th className="py-2 px-4 border-b  text-left">Nomor tlp Karyawan</th>
-              <th className="py-2 px-4 border-b  text-left">HargaModal</th>
-              <th className="py-2 px-4 border-b  text-left">HargaJual</th>
-              <th className="py-2 px-4 border-b  text-left">Type Barang</th>
-              <th className="py-2 px-4 border-b  text-left">Type Handphone</th>
-              <th className="py-2 px-4 border-b  text-left">Nomor Imei HP</th>
-              <th className="py-2 px-4 border-b  text-left">Type Motor Listrik</th>
-              <th className="py-2 px-4 border-b  text-left">Nomor Mesin</th>
+      {/* Table master */}
+      <div className="overflow-auto bg-white rounded-lg shadow">
+        <table className="min-w-[900px] w-full">
+          <thead className="bg-gray-50">
+            <tr className="text-left">
+              <th className="p-2">Brand</th>
+              <th className="p-2">Produk</th>
+              <th className="p-2">Warna</th>
+              <th className="p-2">SRP</th>
+              <th className="p-2">Grosir</th>
+              <th className="p-2">Kategori</th>
+              <th className="p-2">Aksi</th>
             </tr>
           </thead>
           <tbody>
-            {accessories.map((accessory) => (
-              <tr key={accessory.id}>
-                <td className="py-2 px-4 border-b">{accessory.id}</td>
-                <td className="py-2 px-4 border-b">{accessory.tanggal}</td>
-                <td className="py-2 px-4 border-b">{accessory.namaPic}</td>
-                <td className="py-2 px-4 border-b">{accessory.nomorPic}</td>
-                <td className="py-2 px-4 border-b">{accessory.namaKaryawan}</td>
-                <td className="py-2 px-4 border-b">{accessory.nomorKaryawan}</td>
-                <td className="py-2 px-4 border-b">{accessory.hargaModal}</td>
-                <td className="py-2 px-4 border-b">{accessory.hargaJual}</td>
-                <td className="py-2 px-4 border-b">{accessory.namaBarang}</td>
-                <td className="py-2 px-4 border-b">{accessory.phoneType}</td>
-                <td className="py-2 px-4 border-b">{accessory.nomorImei}</td>
-                <td className="py-2 px-4 border-b">{accessory.motorType}</td>
-                <td className="py-2 px-4 border-b">{accessory.nomorMesin}</td>
+            {pageRows.map((r, i) => {
+              const ridx = (page - 1) * pageSize + i;
+              return (
+                <tr key={ridx} className="border-t">
+                  <td className="p-2">{r.brand}</td>
+                  <td className="p-2">{r.name}</td>
+                  <td className="p-2">{r.warna}</td>
+                  <td className="p-2">{fmt(r.srp)}</td>
+                  <td className="p-2">{fmt(r.grosir)}</td>
+                  <td className="p-2">{r.kategori}</td>
+                  <td className="p-2">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => editRow(ridx)}
+                        className="px-2 py-1 text-xs bg-amber-500 text-white rounded"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => deleteRow(ridx)}
+                        className="px-2 py-1 text-xs bg-red-600 text-white rounded"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            {pageRows.length === 0 && (
+              <tr>
+                <td colSpan={7} className="p-4 text-center text-gray-500">
+                  Tidak ada data.
+                </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
+
+      {/* Refs editor singkat */}
+      <div className="bg-white rounded-lg shadow p-4 grid md:grid-cols-3 gap-4">
+        <RefEditor
+          title="Payment Methods"
+          listKey="paymentMethods"
+          refs={refs}
+          onAdd={addRef}
+          onDel={deleteRef}
+        />
+        <RefEditor
+          title="Tenor Options"
+          listKey="tenorOptions"
+          refs={refs}
+          onAdd={addRef}
+          onDel={deleteRef}
+        />
+        <RefEditor
+          title="MP Protect Options"
+          listKey="mpProtectOptions"
+          refs={refs}
+          onAdd={addRef}
+          onDel={deleteRef}
+        />
+        <RefEditor
+          title="Brand List"
+          listKey="brandList"
+          refs={refs}
+          onAdd={addRef}
+          onDel={deleteRef}
+        />
+        <RefEditor
+          title="Product List"
+          listKey="productList"
+          refs={refs}
+          onAdd={addRef}
+          onDel={deleteRef}
+        />
+        <RefEditor
+          title="Warna List"
+          listKey="warnaList"
+          refs={refs}
+          onAdd={addRef}
+          onDel={deleteRef}
+        />
+      </div>
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between">
+        <div>
+          Halaman {page} / {totalPages} (Total {filtered.length})
+        </div>
+        <div className="flex gap-2">
+          <button
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className={`px-3 py-1 border rounded ${page <= 1 ? "opacity-50" : ""}`}
+          >
+            Prev
+          </button>
+          <button
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            className={`px-3 py-1 border rounded ${page >= totalPages ? "opacity-50" : ""}`}
+          >
+            Next
+          </button>
+        </div>
+      </div>
     </div>
   );
-};
+}
 
-export default DataManagement;
+function RefEditor({ title, listKey, refs, onAdd, onDel }) {
+  const [val, setVal] = useState("");
+  const list = refs[listKey] || [];
+  return (
+    <div>
+      <div className="font-semibold mb-2">{title}</div>
+      <div className="flex gap-2">
+        <input
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          className="border rounded p-2 w-full"
+          placeholder={`Tambah ${title}…`}
+        />
+        <button
+          onClick={() => {
+            onAdd(listKey, val);
+            setVal("");
+          }}
+          className="px-3 py-2 bg-blue-600 text-white rounded"
+        >
+          Add
+        </button>
+      </div>
+      <div className="mt-2 max-h-40 overflow-auto border rounded p-2">
+        {list.map((x) => (
+          <div key={x} className="flex justify-between items-center py-1">
+            <span className="text-sm">{x}</span>
+            <button
+              onClick={() => onDel(listKey, x)}
+              className="px-2 py-1 text-xs bg-red-600 text-white rounded"
+            >
+              Hapus
+            </button>
+          </div>
+        ))}
+        {list.length === 0 && <div className="text-xs text-gray-500">Kosong.</div>}
+      </div>
+    </div>
+  );
+}
