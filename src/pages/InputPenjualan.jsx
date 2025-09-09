@@ -23,7 +23,6 @@ const rSafe = (s) => (s || "").replace(/[^\p{L}\p{N}_-]+/gu, "_");
 function getTokoList() {
   return Array.isArray(ListData.TOKO_LIST) ? ListData.TOKO_LIST : [];
 }
-
 function getBrands() {
   if (Array.isArray(ListData.BRAND_LIST) && ListData.BRAND_LIST.length) return ListData.BRAND_LIST;
   if (ListData.CATALOG_INDEX && typeof ListData.CATALOG_INDEX === "object") {
@@ -31,7 +30,6 @@ function getBrands() {
   }
   return [];
 }
-
 function getProducts(brand) {
   if (typeof ListData.getProductsByBrand === "function") {
     const out = ListData.getProductsByBrand(brand);
@@ -40,13 +38,11 @@ function getProducts(brand) {
   if (brand && ListData.CATALOG_INDEX && ListData.CATALOG_INDEX[brand]) {
     return Object.keys(ListData.CATALOG_INDEX[brand]);
   }
-  // fallback terakhir: kalau brand kosong, boleh tampilkan product list umum
   if (Array.isArray(ListData.PRODUCT_LIST) && ListData.PRODUCT_LIST.length) {
     return ListData.PRODUCT_LIST;
   }
   return [];
 }
-
 function getWarna(brand, product) {
   if (typeof ListData.getWarnaByBrandProduct === "function") {
     const out = ListData.getWarnaByBrandProduct(brand, product) || [];
@@ -55,7 +51,6 @@ function getWarna(brand, product) {
   const idx = ListData.CATALOG_INDEX || {};
   return idx[brand] && idx[brand][product] ? idx[brand][product].warna || [] : [];
 }
-
 function getBaterai(brand, product) {
   if (typeof ListData.getBateraiByBrandProduct === "function") {
     const out = ListData.getBateraiByBrandProduct(brand, product) || [];
@@ -64,7 +59,6 @@ function getBaterai(brand, product) {
   const idx = ListData.CATALOG_INDEX || {};
   return idx[brand] && idx[brand][product] ? idx[brand][product].baterai || [] : [];
 }
-
 function getCharger(brand, product) {
   if (typeof ListData.getChargerByBrandProduct === "function") {
     const out = ListData.getChargerByBrandProduct(brand, product) || [];
@@ -73,15 +67,11 @@ function getCharger(brand, product) {
   const idx = ListData.CATALOG_INDEX || {};
   return idx[brand] && idx[brand][product] ? idx[brand][product].charger || [] : [];
 }
-
 function getImei(brand, product) {
-  // (CATALOG_INDEX contoh kamu saat ini belum punya field imei — akan fallback ke array kosong)
   const idx = ListData.CATALOG_INDEX || {};
   const node = idx[brand] && idx[brand][product] ? idx[brand][product] : null;
-  // dukung kemungkinan nama lain kalau nanti ditambahkan
   return node?.imei || node?.imeis || node?.serials || [];
 }
-
 function getSalesByTokoName(tokoName) {
   if (typeof ListData.getSalesByToko === "function") {
     return ListData.getSalesByToko(tokoName) || [];
@@ -123,6 +113,14 @@ export default function InputPenjualan() {
     () => (Array.isArray(ListData.PAYMENT_METHODS) ? ListData.PAYMENT_METHODS : ["Cash", "Kredit"]),
     []
   );
+  const tenorOptions = useMemo(
+    () => (Array.isArray(ListData.TENOR_OPTIONS) ? ListData.TENOR_OPTIONS : []),
+    []
+  );
+  const mpProtectOptions = useMemo(
+    () => (Array.isArray(ListData.MP_PROTECT_OPTIONS) ? ListData.MP_PROTECT_OPTIONS : []),
+    []
+  );
 
   // toko terpilih (PIC toko dikunci)
   const [tokoRef, setTokoRef] = useState(DEFAULT_TOKO);
@@ -141,6 +139,8 @@ export default function InputPenjualan() {
     const defaultBaterai = getBaterai(defaultBrand, defaultProduct)[0] || "";
     const defaultCharger = getCharger(defaultBrand, defaultProduct)[0] || "";
     const priceCat = priceCategoryOptions[0] || "GROSIR";
+    const tenor0 = tenorOptions[0] || "";
+    const mp0 = mpProtectOptions[0] || "";
 
     return {
       // identitas
@@ -177,6 +177,8 @@ export default function InputPenjualan() {
 
       // payment
       paymentMethod: paymentMethods[0] || "Cash",
+      tenor: tenor0,
+      mpProtect: mp0, // nominal string, mis. "150000"
     };
   });
 
@@ -209,10 +211,6 @@ export default function InputPenjualan() {
     }
   }, [form.salesName, salesOptions]);
 
-  /* ---------- Harga (SRP/Grosir) opsional: di ListData saat ini belum ada angka harga per item,
-     jadi kolom harga dibiarkan manual. Jika nanti mau otomatis, cukup tambahkan getHarga()
-     di ListData dan panggil di sini. ---------- */
-
   // Ganti brand → reset dependent
   const onChangeBrand = (brand) => {
     const products = getProducts(brand);
@@ -231,10 +229,8 @@ export default function InputPenjualan() {
       namaBrand: brand,
       namaBarang: product,
       noImei: imei0,
-      // biarkan harga manual (0) kecuali kamu tambahkan getHarga
     }));
   };
-
   // Ganti produk → reset dependent
   const onChangeProduk = (product) => {
     const warna = getWarna(form.brand, product)[0] || "";
@@ -265,6 +261,24 @@ export default function InputPenjualan() {
   );
   const imeiOptions = useMemo(() => getImei(form.brand, form.produk), [form.brand, form.produk]);
 
+  /* ---------- MDR derived ---------- */
+  const mdrPercent = useMemo(() => {
+    try {
+      return Number(
+        ListData.getMdr({
+          method: form.paymentMethod,
+          toko: tokoRef,
+          brand: form.brand,
+        }) || 0
+      );
+    } catch {
+      return 0;
+    }
+  }, [form.paymentMethod, tokoRef, form.brand]);
+
+  const mdrAmount = useMemo(() => toNum(form.harga) * mdrPercent, [form.harga, mdrPercent]);
+  const netAmount = useMemo(() => toNum(form.harga) - mdrAmount, [form.harga, mdrAmount]);
+
   /* ---------- Data Tabel ---------- */
   const [rows, setRows] = useState([]);
 
@@ -276,6 +290,10 @@ export default function InputPenjualan() {
       srp: toNum(form.srp),
       grosir: toNum(form.grosir),
       harga: toNum(form.harga),
+      // derived snapshot
+      mdrPercent,
+      mdrAmount,
+      netAmount,
       approved: false,
     };
     setRows((prev) => [newRow, ...prev]);
@@ -302,14 +320,21 @@ export default function InputPenjualan() {
       BATERAI: r.baterai,
       CHARGER: r.charger,
       NO_IMEI: r.noImei,
-      KATEGORI_HARGA: r.priceCategory,
 
+      KATEGORI_HARGA: r.priceCategory,
       QTY: r.qty,
       SRP: r.srp,
       GROSIR: r.grosir,
       HARGA: r.harga,
 
       PAYMENT: r.paymentMethod,
+      TENOR: r.tenor,
+      MP_PROTECT: toNum(r.mpProtect),
+
+      MDR_PERSEN: r.mdrPercent,
+      MDR_RUPIAH: r.mdrAmount,
+      NET_RUPIAH: r.netAmount,
+
       STATUS: r.approved ? "APPROVED" : "DRAFT",
     }));
     const ws = XLSX.utils.json_to_sheet(data);
@@ -332,7 +357,29 @@ export default function InputPenjualan() {
     setDraft(null);
   };
   const saveEdit = () => {
-    setRows((prev) => prev.map((r) => (r.id === editingId ? { ...draft } : r)));
+    // hitung ulang derived sebelum simpan
+    const draftMdrPercent = Number(
+      ListData.getMdr({
+        method: draft.paymentMethod,
+        toko: draft.tokoRef,
+        brand: draft.brand,
+      }) || 0
+    );
+    const draftMdrAmount = toNum(draft.harga) * draftMdrPercent;
+    const draftNet = toNum(draft.harga) - draftMdrAmount;
+
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id === editingId
+          ? {
+              ...draft,
+              mdrPercent: draftMdrPercent,
+              mdrAmount: draftMdrAmount,
+              netAmount: draftNet,
+            }
+          : r
+      )
+    );
     cancelEdit();
   };
   const deleteRow = (id) => {
@@ -367,6 +414,7 @@ export default function InputPenjualan() {
         r.noImei,
         r.priceCategory,
         r.paymentMethod,
+        r.tenor,
         r.noKontrak,
         r.akunPelanggan,
         r.noHp,
@@ -550,8 +598,8 @@ export default function InputPenjualan() {
               value={form.produk}
               onChange={(e) => onChangeProduk(e.target.value)}
             >
-              {getProducts(form.brand).length ? (
-                getProducts(form.brand).map((p) => (
+              {productOptions.length ? (
+                productOptions.map((p) => (
                   <option key={`${form.brand}-${p}`} value={p}>
                     {p}
                   </option>
@@ -569,8 +617,8 @@ export default function InputPenjualan() {
               value={form.warna}
               onChange={(e) => setForm({ ...form, warna: e.target.value })}
             >
-              {getWarna(form.brand, form.produk).length ? (
-                getWarna(form.brand, form.produk).map((w) => (
+              {warnaOptions.length ? (
+                warnaOptions.map((w) => (
                   <option key={`w-${w}`} value={w}>
                     {w}
                   </option>
@@ -588,8 +636,8 @@ export default function InputPenjualan() {
               value={form.baterai}
               onChange={(e) => setForm({ ...form, baterai: e.target.value })}
             >
-              {getBaterai(form.brand, form.produk).length ? (
-                getBaterai(form.brand, form.produk).map((x) => (
+              {bateraiOptions.length ? (
+                bateraiOptions.map((x) => (
                   <option key={`bat-${x}`} value={x}>
                     {x}
                   </option>
@@ -607,8 +655,8 @@ export default function InputPenjualan() {
               value={form.charger}
               onChange={(e) => setForm({ ...form, charger: e.target.value })}
             >
-              {getCharger(form.brand, form.produk).length ? (
-                getCharger(form.brand, form.produk).map((x) => (
+              {chargerOptions.length ? (
+                chargerOptions.map((x) => (
                   <option key={`chg-${x}`} value={x}>
                     {x}
                   </option>
@@ -644,7 +692,7 @@ export default function InputPenjualan() {
               onChange={(e) => setForm({ ...form, namaBarang: e.target.value })}
             >
               <option value="">— Pilih —</option>
-              {getProducts(form.brand).map((p) => (
+              {productOptions.map((p) => (
                 <option key={`nbg-${p}`} value={p}>
                   {p}
                 </option>
@@ -735,8 +783,15 @@ export default function InputPenjualan() {
               onChange={(e) => setForm({ ...form, harga: toNum(e.target.value) })}
             />
           </div>
+        </div>
+      </div>
 
-          <div>
+      {/* ========== CARD: Pembayaran (Tenor, MP Protect, MDR/NET Otomatis) ========== */}
+      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+        <h2 className="text-lg font-semibold mb-3">Pembayaran</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+          <div className="md:col-span-2">
             <label className="text-xs text-slate-600">Payment Method</label>
             <select
               className="w-full border rounded px-2 py-1"
@@ -749,6 +804,68 @@ export default function InputPenjualan() {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-600">Tenor</label>
+            <select
+              className="w-full border rounded px-2 py-1"
+              value={form.tenor}
+              onChange={(e) => setForm({ ...form, tenor: e.target.value })}
+            >
+              <option value="">— Pilih —</option>
+              {tenorOptions.map((t) => (
+                <option key={`tenor-${t}`} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-600">MP Protect (Rp)</label>
+            <select
+              className="w-full border rounded px-2 py-1 text-right"
+              value={form.mpProtect}
+              onChange={(e) => setForm({ ...form, mpProtect: e.target.value })}
+            >
+              <option value="">0</option>
+              {mpProtectOptions.map((v) => (
+                <option key={`mp-${v}`} value={v}>
+                  {Number(v).toLocaleString("id-ID")}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-600">MDR % (auto)</label>
+            <input
+              disabled
+              className="w-full border rounded px-2 py-1 text-right bg-slate-50"
+              value={(mdrPercent * 100).toFixed(2) + " %"}
+              readOnly
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-600">MDR (Rp) (auto)</label>
+            <input
+              disabled
+              className="w-full border rounded px-2 py-1 text-right bg-slate-50"
+              value={fmtIDR(mdrAmount)}
+              readOnly
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-600">NET (Rp) (auto)</label>
+            <input
+              disabled
+              className="w-full border rounded px-2 py-1 text-right bg-slate-50"
+              value={fmtIDR(netAmount)}
+              readOnly
+            />
           </div>
         </div>
 
@@ -791,7 +908,7 @@ export default function InputPenjualan() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[1600px] text-sm">
+          <table className="min-w-[2000px] text-sm">
             <thead className="bg-slate-50 text-slate-600">
               <tr>
                 <th className="px-3 py-2 text-left">Tanggal</th>
@@ -805,12 +922,20 @@ export default function InputPenjualan() {
                 <th className="px-3 py-2 text-left">Nama Barang</th>
                 <th className="px-3 py-2 text-left">Warna</th>
                 <th className="px-3 py-2 text-left">IMEI</th>
+
                 <th className="px-3 py-2 text-right">Qty</th>
                 <th className="px-3 py-2 text-left">Kategori Harga</th>
                 <th className="px-3 py-2 text-right">SRP</th>
                 <th className="px-3 py-2 text-right">Grosir</th>
                 <th className="px-3 py-2 text-right">Harga</th>
+
                 <th className="px-3 py-2 text-left">Payment</th>
+                <th className="px-3 py-2 text-left">Tenor</th>
+                <th className="px-3 py-2 text-right">MP Protect</th>
+                <th className="px-3 py-2 text-right">MDR %</th>
+                <th className="px-3 py-2 text-right">MDR (Rp)</th>
+                <th className="px-3 py-2 text-right">NET (Rp)</th>
+
                 <th className="px-3 py-2 text-left">Status</th>
                 <th className="px-3 py-2 text-left">Aksi</th>
               </tr>
@@ -818,7 +943,19 @@ export default function InputPenjualan() {
             <tbody>
               {pageRows.map((row) => {
                 const isEditing = editingId === row.id;
+
                 if (isEditing && draft) {
+                  // hitung ulang mdr untuk draft
+                  const dMdrPercent = Number(
+                    ListData.getMdr({
+                      method: draft.paymentMethod,
+                      toko: draft.tokoRef,
+                      brand: draft.brand,
+                    }) || 0
+                  );
+                  const dMdrAmount = toNum(draft.harga) * dMdrPercent;
+                  const dNet = toNum(draft.harga) - dMdrAmount;
+
                   return (
                     <tr key={row.id} className="border-b last:border-0 bg-slate-50/50">
                       <td className="px-3 py-2">
@@ -892,6 +1029,7 @@ export default function InputPenjualan() {
                           onChange={(e) => setDraft((d) => ({ ...d, warna: e.target.value }))}
                         />
                       </td>
+
                       <td className="px-3 py-2">
                         <input
                           className="border rounded px-2 py-1 w-40"
@@ -899,6 +1037,7 @@ export default function InputPenjualan() {
                           onChange={(e) => setDraft((d) => ({ ...d, noImei: e.target.value }))}
                         />
                       </td>
+
                       <td className="px-3 py-2 text-right">
                         <input
                           type="number"
@@ -946,7 +1085,54 @@ export default function InputPenjualan() {
                           }
                         />
                       </td>
-                      <td className="px-3 py-2">{draft.paymentMethod}</td>
+
+                      <td className="px-3 py-2">
+                        <select
+                          className="border rounded px-2 py-1 w-44"
+                          value={draft.paymentMethod}
+                          onChange={(e) =>
+                            setDraft((d) => ({ ...d, paymentMethod: e.target.value }))
+                          }
+                        >
+                          {paymentMethods.map((pm) => (
+                            <option key={`pm-ed-${pm}`} value={pm}>
+                              {pm}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2">
+                        <select
+                          className="border rounded px-2 py-1 w-36"
+                          value={draft.tenor}
+                          onChange={(e) => setDraft((d) => ({ ...d, tenor: e.target.value }))}
+                        >
+                          <option value="">—</option>
+                          {tenorOptions.map((t) => (
+                            <option key={`tenor-ed-${t}`} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <select
+                          className="border rounded px-2 py-1 w-32 text-right"
+                          value={draft.mpProtect}
+                          onChange={(e) => setDraft((d) => ({ ...d, mpProtect: e.target.value }))}
+                        >
+                          <option value="">0</option>
+                          {mpProtectOptions.map((v) => (
+                            <option key={`mp-ed-${v}`} value={v}>
+                              {Number(v).toLocaleString("id-ID")}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2 text-right">{(dMdrPercent * 100).toFixed(2)}%</td>
+                      <td className="px-3 py-2 text-right">{fmtIDR(dMdrAmount)}</td>
+                      <td className="px-3 py-2 text-right">{fmtIDR(dNet)}</td>
+
                       <td className="px-3 py-2">
                         <span
                           className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ${
@@ -991,12 +1177,22 @@ export default function InputPenjualan() {
                     <td className="px-3 py-2">{row.namaBarang || "-"}</td>
                     <td className="px-3 py-2">{row.warna || "-"}</td>
                     <td className="px-3 py-2">{row.noImei || "-"}</td>
+
                     <td className="px-3 py-2 text-right">{row.qty || 0}</td>
                     <td className="px-3 py-2">{row.priceCategory}</td>
                     <td className="px-3 py-2 text-right">{fmtIDR(row.srp)}</td>
                     <td className="px-3 py-2 text-right">{fmtIDR(row.grosir)}</td>
                     <td className="px-3 py-2 text-right">{fmtIDR(row.harga)}</td>
+
                     <td className="px-3 py-2">{row.paymentMethod}</td>
+                    <td className="px-3 py-2">{row.tenor || "-"}</td>
+                    <td className="px-3 py-2 text-right">
+                      {row.mpProtect ? fmtIDR(toNum(row.mpProtect)) : "Rp 0"}
+                    </td>
+                    <td className="px-3 py-2 text-right">{((row.mdrPercent || 0) * 100).toFixed(2)}%</td>
+                    <td className="px-3 py-2 text-right">{fmtIDR(row.mdrAmount || 0)}</td>
+                    <td className="px-3 py-2 text-right">{fmtIDR(row.netAmount || 0)}</td>
+
                     <td className="px-3 py-2">
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ${
@@ -1036,7 +1232,7 @@ export default function InputPenjualan() {
 
               {pageRows.length === 0 && (
                 <tr>
-                  <td colSpan={19} className="px-3 py-6 text-center text-slate-500">
+                  <td colSpan={24} className="px-3 py-6 text-center text-slate-500">
                     Tidak ada data.
                   </td>
                 </tr>
