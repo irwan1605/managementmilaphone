@@ -19,7 +19,7 @@ const fmtIDR = (n) => {
 };
 const rSafe = (s) => (s || "").replace(/[^\p{L}\p{N}_-]+/gu, "_");
 
-/* ===================== Data getters (pakai fungsi bawaan ListData, fallback aman) ===================== */
+/* ===================== Data getters ===================== */
 function getTokoList() {
   return Array.isArray(ListData.TOKO_LIST) ? ListData.TOKO_LIST : [];
 }
@@ -129,6 +129,23 @@ export default function InputPenjualan() {
   const salesOptions = useMemo(() => getSalesByTokoName(tokoRef), [tokoRef]);
   const SH_LIST = useMemo(() => unique(salesOptions.map((s) => s.sh)), [salesOptions]);
   const SL_LIST = useMemo(() => unique(salesOptions.map((s) => s.sl)), [salesOptions]);
+
+  /* ---------- Toggle persist (Kurangi MP Protect dari NET) ---------- */
+  const [subtractMPFromNet, setSubtractMPFromNet] = useState(() => {
+    try {
+      const raw = localStorage.getItem("pref_subtract_mp_from_net");
+      return raw === null ? true : JSON.parse(raw);
+    } catch {
+      return true;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("pref_subtract_mp_from_net", JSON.stringify(subtractMPFromNet));
+    } catch {
+      /* ignore */
+    }
+  }, [subtractMPFromNet]);
 
   /* ---------- Form state ---------- */
   const [form, setForm] = useState(() => {
@@ -261,7 +278,7 @@ export default function InputPenjualan() {
   );
   const imeiOptions = useMemo(() => getImei(form.brand, form.produk), [form.brand, form.produk]);
 
-  /* ---------- MDR derived ---------- */
+  /* ---------- MDR & NET derived ---------- */
   const mdrPercent = useMemo(() => {
     try {
       return Number(
@@ -277,7 +294,12 @@ export default function InputPenjualan() {
   }, [form.paymentMethod, tokoRef, form.brand]);
 
   const mdrAmount = useMemo(() => toNum(form.harga) * mdrPercent, [form.harga, mdrPercent]);
-  const netAmount = useMemo(() => toNum(form.harga) - mdrAmount, [form.harga, mdrAmount]);
+  const mpProtectNum = useMemo(() => toNum(form.mpProtect), [form.mpProtect]);
+
+  const netAmount = useMemo(() => {
+    const base = toNum(form.harga) - mdrAmount;
+    return subtractMPFromNet ? base - mpProtectNum : base;
+  }, [form.harga, mdrAmount, mpProtectNum, subtractMPFromNet]);
 
   /* ---------- Data Tabel ---------- */
   const [rows, setRows] = useState([]);
@@ -294,6 +316,7 @@ export default function InputPenjualan() {
       mdrPercent,
       mdrAmount,
       netAmount,
+      subtractMPFromNet, // snapshot toggle (preferensi aktif)
       approved: false,
     };
     setRows((prev) => [newRow, ...prev]);
@@ -334,6 +357,7 @@ export default function InputPenjualan() {
       MDR_PERSEN: r.mdrPercent,
       MDR_RUPIAH: r.mdrAmount,
       NET_RUPIAH: r.netAmount,
+      NET_MINUS_MP: r.subtractMPFromNet ? "YA" : "TIDAK",
 
       STATUS: r.approved ? "APPROVED" : "DRAFT",
     }));
@@ -366,7 +390,9 @@ export default function InputPenjualan() {
       }) || 0
     );
     const draftMdrAmount = toNum(draft.harga) * draftMdrPercent;
-    const draftNet = toNum(draft.harga) - draftMdrAmount;
+    const draftMp = toNum(draft.mpProtect);
+    const draftNet =
+      toNum(draft.harga) - draftMdrAmount - (draft.subtractMPFromNet ? draftMp : 0);
 
     setRows((prev) =>
       prev.map((r) =>
@@ -859,7 +885,9 @@ export default function InputPenjualan() {
           </div>
 
           <div>
-            <label className="text-xs text-slate-600">NET (Rp) (auto)</label>
+            <label className="text-xs text-slate-600">
+              NET (Rp) (auto = Harga − MDR − {subtractMPFromNet ? "MP" : "0"})
+            </label>
             <input
               disabled
               className="w-full border rounded px-2 py-1 text-right bg-slate-50"
@@ -867,6 +895,19 @@ export default function InputPenjualan() {
               readOnly
             />
           </div>
+        </div>
+
+        {/* Toggle persist */}
+        <div className="mt-3">
+          <label className="inline-flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="h-4 w-4"
+              checked={subtractMPFromNet}
+              onChange={(e) => setSubtractMPFromNet(e.target.checked)}
+            />
+            Kurangi MP Protect dari NET
+          </label>
         </div>
 
         <div className="mt-3">
@@ -945,7 +986,7 @@ export default function InputPenjualan() {
                 const isEditing = editingId === row.id;
 
                 if (isEditing && draft) {
-                  // hitung ulang mdr untuk draft
+                  // hitung ulang mdr & net untuk draft dgn toggle per-baris
                   const dMdrPercent = Number(
                     ListData.getMdr({
                       method: draft.paymentMethod,
@@ -954,7 +995,9 @@ export default function InputPenjualan() {
                     }) || 0
                   );
                   const dMdrAmount = toNum(draft.harga) * dMdrPercent;
-                  const dNet = toNum(draft.harga) - dMdrAmount;
+                  const dMp = toNum(draft.mpProtect);
+                  const dNet =
+                    toNum(draft.harga) - dMdrAmount - (draft.subtractMPFromNet ? dMp : 0);
 
                   return (
                     <tr key={row.id} className="border-b last:border-0 bg-slate-50/50">
@@ -1116,18 +1159,34 @@ export default function InputPenjualan() {
                         </select>
                       </td>
                       <td className="px-3 py-2 text-right">
-                        <select
-                          className="border rounded px-2 py-1 w-32 text-right"
-                          value={draft.mpProtect}
-                          onChange={(e) => setDraft((d) => ({ ...d, mpProtect: e.target.value }))}
-                        >
-                          <option value="">0</option>
-                          {mpProtectOptions.map((v) => (
-                            <option key={`mp-ed-${v}`} value={v}>
-                              {Number(v).toLocaleString("id-ID")}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="flex items-center gap-2">
+                          <select
+                            className="border rounded px-2 py-1 w-32 text-right"
+                            value={draft.mpProtect}
+                            onChange={(e) =>
+                              setDraft((d) => ({ ...d, mpProtect: e.target.value }))
+                            }
+                          >
+                            <option value="">0</option>
+                            {mpProtectOptions.map((v) => (
+                              <option key={`mp-ed-${v}`} value={v}>
+                                {Number(v).toLocaleString("id-ID")}
+                              </option>
+                            ))}
+                          </select>
+                          {/* Toggle per-baris saat edit */}
+                          <label className="inline-flex items-center gap-1 text-[11px] text-slate-600">
+                            <input
+                              type="checkbox"
+                              className="h-3 w-3"
+                              checked={!!draft.subtractMPFromNet}
+                              onChange={(e) =>
+                                setDraft((d) => ({ ...d, subtractMPFromNet: e.target.checked }))
+                              }
+                            />
+                            Kurangi MP
+                          </label>
+                        </div>
                       </td>
                       <td className="px-3 py-2 text-right">{(dMdrPercent * 100).toFixed(2)}%</td>
                       <td className="px-3 py-2 text-right">{fmtIDR(dMdrAmount)}</td>
@@ -1189,7 +1248,9 @@ export default function InputPenjualan() {
                     <td className="px-3 py-2 text-right">
                       {row.mpProtect ? fmtIDR(toNum(row.mpProtect)) : "Rp 0"}
                     </td>
-                    <td className="px-3 py-2 text-right">{((row.mdrPercent || 0) * 100).toFixed(2)}%</td>
+                    <td className="px-3 py-2 text-right">
+                      {((row.mdrPercent || 0) * 100).toFixed(2)}%
+                    </td>
                     <td className="px-3 py-2 text-right">{fmtIDR(row.mdrAmount || 0)}</td>
                     <td className="px-3 py-2 text-right">{fmtIDR(row.netAmount || 0)}</td>
 
