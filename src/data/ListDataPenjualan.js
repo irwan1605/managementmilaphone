@@ -2,6 +2,10 @@
 // Place at: src/data/ListDataPenjualan.js
 // Shared list & rule data for sales pages. Extracted from 'ListDataPenjualan.xlsx'.
 
+/* =========================
+ *  Dropdowns & Master Lists
+ * ========================= */
+
 export const PAYMENT_METHODS = [
   "CASH TUNAI",
   "COD",
@@ -31,7 +35,9 @@ export const PAYMENT_METHODS = [
   "AVANTO",
   "SAMSUNG FINANCE",
 ];
+
 export const PRICE_CATEGORIES = ["SRP", "GROSIR", "RESELLER/CORPORATE"];
+
 export const MP_PROTECT_OPTIONS = [
   "150000",
   "200000",
@@ -41,6 +47,7 @@ export const MP_PROTECT_OPTIONS = [
   "600000",
   "900000",
 ];
+
 export const TENOR_OPTIONS = [
   "30 Hari",
   "3 Bulan",
@@ -54,6 +61,7 @@ export const TENOR_OPTIONS = [
   "14 Bulan",
   "11 Bulan",
 ];
+
 export const TOKO_LIST = [
   "KONTEN LIVE",
   "Gas Alam",
@@ -65,6 +73,7 @@ export const TOKO_LIST = [
   "Metland 1",
   "Metland 2",
 ];
+
 export const BRAND_LIST = [
   "OPPO",
   "VIVO",
@@ -86,6 +95,7 @@ export const BRAND_LIST = [
   "RAKATA",
   "ECGO",
 ];
+
 export const WARNA_LIST = [
   "PUTIH",
   "HITAM",
@@ -101,6 +111,7 @@ export const WARNA_LIST = [
   "CREAM",
   "KUNING",
 ];
+
 export const PRODUCT_LIST = [
   "TORA YORU",
   "ZXTEC U8",
@@ -170,6 +181,7 @@ export const PRODUCT_LIST = [
   "ECGO 3 Baterai Hak milik",
   "ECGO 5 Baterai Hak milik",
 ];
+
 export const BATTERY_LIST = [
   "BATERAI SLA 20A",
   "BATERAI SLA 12A",
@@ -184,6 +196,7 @@ export const BATTERY_LIST = [
   "BATERAI LITH 72V 45A PYLION",
   "BATERAI LITH 64V 27A",
 ];
+
 export const CHARGER_LIST = [
   "CHARGER SLA 60V 20A",
   "CHARGER SLA 48V 12A",
@@ -195,6 +208,11 @@ export const CHARGER_LIST = [
   "CHARGER SLA 72V 20A",
   "CHARGER LITHIUM 64V",
 ];
+
+/* =========================
+ *  Sales directory
+ * ========================= */
+
 export const SALES_PEOPLE = [
   {
     name: "AHMAD RAMZI",
@@ -346,7 +364,6 @@ export const SALES_PEOPLE = [
     nik: "MMT/SA-613/07/0425",
     toko: "Citeureup",
     sh: "IKMAL AKBAR",
-    tuyul: "SARIPUDIN",
   },
   {
     name: "M. RIZKI NURFAHMI",
@@ -514,6 +531,16 @@ export const SALES_PEOPLE = [
     sh: "MALVIN VALERIAN",
   },
 ];
+
+export function getSalesByToko(toko) {
+  const t = (toko || "").toString().toLowerCase();
+  return SALES_PEOPLE.filter((sp) => (sp.toko || "").toLowerCase() === t);
+}
+
+/* =========================
+ *  MDR rules & helper
+ * ========================= */
+
 export const MDR_RULES = [
   { method: "CASH TUNAI", mdr: 0.0, toko: "KONTEN LIVE", brand: "OPPO" },
   { method: "COD", mdr: 0.0, toko: "KONTEN LIVE", brand: "VIVO" },
@@ -568,6 +595,35 @@ export const MDR_RULES = [
   { method: "AVANTO", mdr: 0.0, toko: "Metland 2" },
   { method: "SAMSUNG FINANCE", mdr: 0.0, toko: "Ciracas" },
 ];
+
+// Helper: resolve MDR (%). Priority: (method+toko+brand) > (method+toko) > (method+brand) > (method)
+export function getMdr({ method, toko = "", brand = "" }) {
+  const m = (method || "").toString().trim().toLowerCase();
+  const t = (toko || "").toString().trim().toLowerCase();
+  const b = (brand || "").toString().trim().toLowerCase();
+  if (!m) return 0;
+  let best = null,
+    bestScore = -1;
+  for (const r of MDR_RULES) {
+    const rm = (r.method || "").toLowerCase();
+    if (rm !== m) continue;
+    const rt = (r.toko || "").toLowerCase();
+    const rb = (r.brand || "").toLowerCase();
+    let score = 1; // base score for method
+    if (rt && rt === t) score += 2;
+    if (rb && rb === b) score += 2;
+    if (score > bestScore) {
+      best = r;
+      bestScore = score;
+    }
+  }
+  return best ? Number(best.mdr || 0) : 0;
+}
+
+/* =========================
+ *  Katalog Spesifikasi
+ * ========================= */
+
 export const CATALOG_INDEX = {
   OPPO: {
     "TORA YORU": {
@@ -942,30 +998,6 @@ export const CATALOG_INDEX = {
   },
 };
 
-// Helper: resolve MDR (%). Priority: (method+toko+brand) > (method+toko) > (method+brand) > (method)
-export function getMdr({ method, toko = "", brand = "" }) {
-  const m = (method || "").toString().trim().toLowerCase();
-  const t = (toko || "").toString().trim().toLowerCase();
-  const b = (brand || "").toString().trim().toLowerCase();
-  if (!m) return 0;
-  let best = null,
-    bestScore = -1;
-  for (const r of MDR_RULES) {
-    const rm = (r.method || "").toLowerCase();
-    if (rm !== m) continue;
-    const rt = (r.toko || "").toLowerCase();
-    const rb = (r.brand || "").toLowerCase();
-    let score = 1; // base score for method
-    if (rt && rt === t) score += 2;
-    if (rb && rb === b) score += 2;
-    if (score > bestScore) {
-      best = r;
-      bestScore = score;
-    }
-  }
-  return best ? Number(best.mdr || 0) : 0;
-}
-
 // Helper: get products by brand
 export function getProductsByBrand(brand) {
   const b = brand || "";
@@ -990,13 +1022,9 @@ export function getChargerByBrandProduct(brand, product) {
     : [];
 }
 
-// Helper: cari sales by toko
-export function getSalesByToko(toko) {
-  const t = (toko || "").toString().toLowerCase();
-  return SALES_PEOPLE.filter((sp) => (sp.toko || "").toLowerCase() === t);
-}
-
-// Helper: find sales by name/nik
+/* =========================
+ *  Finder sales by name/nik
+ * ========================= */
 export function findSales({ name = "", nik = "" }) {
   const n = (name || "").toString().toLowerCase();
   const id = (nik || "").toString().toLowerCase();
@@ -1008,6 +1036,196 @@ export function findSales({ name = "", nik = "" }) {
     ) || null
   );
 }
+
+/* ============================================================
+ *  Bunga Tenor — detail per method/brand/toko + helper utama
+ *  - return: angka persen (contoh 3.2 artinya 3.2%)
+ *  - tenor boleh string ("3 Bulan", "30 Hari") atau angka
+ *  - prioritas: method+toko+brand > method+toko > brand > toko > method > default
+ * ============================================================ */
+
+const _k = (s) => (s || "").toString().trim().toLowerCase();
+
+// Normalisasi tenor ke "bulan" (angka). "30 Hari" => 1.
+function _tenorToMonths(tenor) {
+  if (typeof tenor === "number" && !isNaN(tenor)) return tenor;
+  const txt = (tenor || "").toString().trim().toLowerCase();
+  // ambil angka pertama
+  const m = txt.match(/\d+/);
+  const n = m ? Number(m[0]) : 0;
+  if (/hari/.test(txt)) return n >= 30 ? 1 : 0; // treat 30 hari ~ 1 bulan
+  return n;
+}
+
+
+
+// Default semua method (fallback global)
+const BUNGA_DEFAULT = {
+  0: 0,
+  1: 0, // 30 hari ~ 1 bulan -> 0% default
+  3: 1.5,
+  6: 2.5,
+  9: 3.5,
+  11: 4.0,
+  12: 4.5,
+  14: 5.2,
+  15: 5.5,
+  17: 5.8,
+  18: 6.5,
+  24: 8.5,
+};
+
+// Global per method (exact string match)
+const BUNGA_BY_METHOD = {
+  "HOME CREDIT POLO": { 3: 1.6, 6: 2.6, 9: 3.6, 12: 4.6, 18: 6.6, 24: 8.6 },
+  "HOME CREDIT MARKETPLACE": {
+    3: 1.7,
+    6: 2.7,
+    9: 3.7,
+    12: 4.7,
+    18: 6.7,
+    24: 8.7,
+  },
+  "KREDIVO BARCODE NON PROMO": { 3: 1.4, 6: 2.4, 9: 3.4, 12: 4.4, 18: 6.2 },
+  "KREDIVO BARCODE VOUCER PROMO": { 3: 1.3, 6: 2.2, 9: 3.2, 12: 4.0, 18: 5.8 },
+  "KREDIVO MARKETPLACE": { 3: 1.5, 6: 2.5, 9: 3.5, 12: 4.5, 18: 6.3 },
+  "ADIRA HIROTO": { 3: 1.6, 6: 2.6, 9: 3.6, 12: 4.6, 18: 6.6 },
+  SPEKTRA: { 3: 1.7, 6: 2.7, 9: 3.7, 12: 4.7, 18: 6.7 },
+  "AEON ENINE": { 3: 1.6, 6: 2.6, 12: 4.6, 18: 6.6 },
+  "SAMSUNG FINANCE": { 3: 1.4, 6: 2.3, 12: 4.2, 18: 6.0 },
+  // Non-kredit: 0
+  "CASH TUNAI": { 1: 0, 3: 0, 6: 0, 12: 0 },
+  COD: { 1: 0, 3: 0, 6: 0, 12: 0 },
+  "TRANSFER KE MMT": { 1: 0, 3: 0, 6: 0, 12: 0 },
+  "QRIS BARCODE": { 1: 0, 3: 0, 6: 0, 12: 0 },
+  "DEBIT MESIN EDC": { 1: 0, 3: 0, 6: 0, 12: 0 },
+  "KARTU KREDIT MESIN EDC": { 3: 1.5, 6: 2.1, 12: 3.1 }, // contoh cicilan cc
+  // marketplace (umumnya 0 bunga; biaya ada di MDR)
+  "BLIBLI INSTORE": { 1: 0, 3: 0, 6: 0, 12: 0 },
+  "AKULAKU BARCODE": { 1: 0, 3: 0, 6: 0, 12: 0 },
+  "AKULAKU MARKETPLACE": { 1: 0, 3: 0, 6: 0, 12: 0 },
+  "BLIBLI MARKET PLACE": { 1: 0, 3: 0, 6: 0, 12: 0 },
+  "TOKOPEDIA MARKETPLACE": { 1: 0, 3: 0, 6: 0, 12: 0 },
+  "LAZADA MARKETPLACE": { 1: 0, 3: 0, 6: 0, 12: 0 },
+  "TIKTOK MAERKETPLACE": { 1: 0, 3: 0, 6: 0, 12: 0 },
+  "SHOPEE MARKETPLACE": { 1: 0, 3: 0, 6: 0, 12: 0 },
+  "SHOPEE EDC": { 1: 0, 3: 0, 6: 0, 12: 0 },
+  "SHOPEE BARCODE": { 1: 0, 3: 0, 6: 0, 12: 0 },
+  "TUKAR TAMBAH": { 1: 0, 3: 0, 6: 0, 12: 0 },
+  AVANTO: { 1: 0, 3: 0, 6: 0, 12: 0 },
+};
+
+// Global per toko (opsional — contoh)
+const BUNGA_BY_TOKO = {
+  "Gas Alam": { 12: 4.4, 18: 6.4 },
+  "Kota Wisata": { 12: 4.6 },
+};
+
+// Global per brand (opsional — contoh)
+const BUNGA_BY_BRAND = {
+  SAMSUNG: { 6: 2.4, 12: 4.4 },
+  XIAOMI: { 6: 2.3, 12: 4.2 },
+};
+
+// Paling spesifik: METHOD -> TOKO -> BRAND
+// (isi jika butuh override paling detail; contoh diberikan)
+const BUNGA_BY_METHOD_TOKO_BRAND = {
+  "HOME CREDIT POLO": {
+    "Metland 2": {
+      default: { 12: 4.4, 18: 6.4 },
+      SAMSUNG: { 12: 4.2, 18: 6.2 },
+    },
+  },
+  "KREDIVO MARKETPLACE": {
+    Pitara: {
+      default: { 12: 4.3, 18: 6.1 },
+    },
+  },
+};
+
+// Kategori kredit—agar method baru yang termasuk kredit tetap punya bunga default
+const CREDIT_METHOD_KEYWORDS = [
+  "HOME CREDIT",
+  "KREDIVO",
+  "ADIRA",
+  "SPEKTRA",
+  "AEON",
+  "SAMSUNG FINANCE",
+];
+
+// Helper cari dari table (object) berdasarkan tenor
+function _pick(table, months) {
+  if (!table) return undefined;
+  if (table[months] !== undefined) return table[months];
+  return undefined;
+}
+
+/**
+ * getBungaByTenor
+ * @param {object} p
+ * @param {string|number} p.tenor - mis. "3 Bulan", 6, "30 Hari"
+ * @param {string} p.method - payment method
+ * @param {string} p.brand
+ * @param {string} p.toko
+ * @returns {number} persen bunga, contoh 3.2
+ */
+export function getBungaByTenor({ tenor, method, brand, toko }) {
+  const months = _tenorToMonths(tenor);
+  const m = (method || "").toString();
+  const b = (brand || "").toString();
+  const t = (toko || "").toString();
+
+  // 1) METHOD + TOKO + BRAND
+  const mtb = BUNGA_BY_METHOD_TOKO_BRAND[m]?.[t];
+  if (mtb) {
+    const exact = _pick(mtb[b], months);
+    if (exact !== undefined) return exact;
+    const def = _pick(mtb.default, months);
+    if (def !== undefined) return def;
+  }
+
+  // 2) METHOD (global)
+  const byMethod = _pick(BUNGA_BY_METHOD[m], months);
+  if (byMethod !== undefined) return byMethod;
+
+  // 3) BRAND (global)
+  const byBrand = _pick(BUNGA_BY_BRAND[b], months);
+  if (byBrand !== undefined) return byBrand;
+
+  // 4) TOKO (global)
+  const byToko = _pick(BUNGA_BY_TOKO[t], months);
+  if (byToko !== undefined) return byToko;
+
+  // 5) Heuristic kategori kredit (method yang memuat kata kunci)
+  const isCredit = CREDIT_METHOD_KEYWORDS.some((kw) =>
+    m.toUpperCase().includes(kw)
+  );
+  if (isCredit) {
+    // mapping kredit default (sedikit lebih "ketat" dari default global)
+    const creditDefault = {
+      ...BUNGA_DEFAULT,
+      3: 1.6,
+      6: 2.6,
+      9: 3.6,
+      12: 4.6,
+      18: 6.6,
+      24: 8.6,
+    };
+    const v = _pick(creditDefault, months);
+    if (v !== undefined) return v;
+  }
+
+  // 6) DEFAULT global
+  const def = _pick(BUNGA_DEFAULT, months);
+  if (def !== undefined) return def;
+
+  // 7) Fallback: 0
+  return 0;
+}
+
+/* =========================
+ *  Default export
+ * ========================= */
 
 export default {
   PAYMENT_METHODS,
@@ -1030,4 +1248,6 @@ export default {
   getChargerByBrandProduct,
   getSalesByToko,
   findSales,
+  // NEW:
+  getBungaByTenor,
 };

@@ -1,4 +1,4 @@
-// App.jsx
+// src/App.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   BrowserRouter as Router,
@@ -24,9 +24,12 @@ import PenjualanMotorListrik from "./pages/PenjualanMotorListrik";
 import Accessories from "./pages/Accessories";
 import DataManagement from "./pages/DataManagement";
 import PembelianMotorListrik from "./pages/PembelianMotorListrik";
-import StockMotorListrik from "./pages/StockMotorListrik";
-import StockHandphone from "./pages/StockHandphone";
-import StockAccessories from "./pages/StockAccessories";
+
+// ⬇️ GANTI: gunakan folder `pages/stock` dan sebutkan ekstensi .jsx
+import StockMotorListrik from "./pages/stock/StockMotorListrik.jsx";
+import StockHandphone from "./pages/stock/StockHandphone.jsx";
+import StockAccessories from "./pages/stock/StockAccessories.jsx";
+
 import Keuangan from "./pages/Keuangan";
 import InputPenjualan from "./pages/InputPenjualan";
 import StrukPenjualan from "./pages/StrukPenjualan";
