@@ -22,7 +22,6 @@ import ServiceMotorListrik from "./pages/ServiceMotorListrik";
 import PenjualanHandphone from "./pages/PenjualanHandphone";
 import PenjualanMotorListrik from "./pages/PenjualanMotorListrik";
 import DataManagement from "./pages/DataManagement";
-import PembelianMotorListrik from "./pages/PembelianMotorListrik";
 
 // === Halaman stok baru (per halaman) ===
 import StockAccessories from "./pages/stock/StockAccessories";
@@ -41,6 +40,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import defaultUsers from "./data/UserManagementRole";
 import PenjualanAccessories from "./pages/PenjualanAccessories";
 import TransferBarangPusat from "./pages/Reports/TransferBarangPusat";
+import PembelianProdukPusat from "./pages/PembelianProdukPusat";
 
 // ---------- dummy data toko ----------
 const generateDummyData = (tokoName) =>
@@ -316,10 +316,10 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="/pembelian-motor-listrik"
+                  path="/pembelian-produk-pusat"
                   element={
                     <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
-                      <PembelianMotorListrik />
+                      <PembelianProdukPusat user={user}/>
                     </ProtectedRoute>
                   }
                 />
