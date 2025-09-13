@@ -319,7 +319,7 @@ export default function App() {
                   path="/pembelian-produk-pusat"
                   element={
                     <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
-                      <PembelianProdukPusat user={user}/>
+                      <PembelianProdukPusat user={user} />
                     </ProtectedRoute>
                   }
                 />
@@ -419,7 +419,7 @@ export default function App() {
                     <ProtectedRoute
                       allowedRoles={["superadmin", "admin", "pic_toko"]}
                     >
-                      <ServiceHandphone />
+                      <ServiceHandphone user={user} />
                     </ProtectedRoute>
                   }
                 />
@@ -429,10 +429,11 @@ export default function App() {
                     <ProtectedRoute
                       allowedRoles={["superadmin", "admin", "pic_toko"]}
                     >
-                      <ServiceMotorListrik />
+                      <ServiceMotorListrik user={user} />
                     </ProtectedRoute>
                   }
                 />
+
                 <Route
                   path="/struk-penjualan"
                   element={
