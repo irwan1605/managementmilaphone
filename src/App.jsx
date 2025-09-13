@@ -25,10 +25,10 @@ import Accessories from "./pages/Accessories";
 import DataManagement from "./pages/DataManagement";
 import PembelianMotorListrik from "./pages/PembelianMotorListrik";
 
-// ⬇️ GANTI: gunakan folder `pages/stock` dan sebutkan ekstensi .jsx
-import StockMotorListrik from "./pages/stock/StockMotorListrik.jsx";
-import StockHandphone from "./pages/stock/StockHandphone.jsx";
-import StockAccessories from "./pages/stock/StockAccessories.jsx";
+// === Halaman stok baru (per halaman) ===
+import StockAccessories from "./pages/stock/StockAccessories";
+import StockHandphone from "./pages/stock/StockHandphone";
+import StockMotorListrik from "./pages/stock/StockMotorListrik";
 
 import Keuangan from "./pages/Keuangan";
 import InputPenjualan from "./pages/InputPenjualan";
@@ -39,8 +39,6 @@ import Invoice from "./pages/Invoice";
 import DashboardToko from "./pages/DashboardToko";
 
 import ProtectedRoute from "./components/ProtectedRoute";
-
-// daftar user default terpusat
 import defaultUsers from "./data/UserManagementRole";
 
 // ---------- dummy data toko ----------
@@ -84,7 +82,7 @@ export default function App() {
   const handleLogin = (u) => setUser(u);
   const handleLogout = () => setUser(null);
 
-  // ===== Sumber data user (UserManagementRole + localStorage) =====
+  // ===== Sumber data user =====
   const [users, setUsers] = useState(() => {
     try {
       const ls = JSON.parse(localStorage.getItem("users"));
@@ -112,7 +110,7 @@ export default function App() {
   const TokoGuard = ({ id }) => {
     const tokoId = Number(id);
 
-    if (user?.role === "superadmin") {
+    if (user?.role === "superadmin" || user?.role === "admin") {
       return (
         <DashboardToko
           user={user}
@@ -149,15 +147,73 @@ export default function App() {
     return <TokoGuard id={id} />;
   };
 
+  // ===== Guard halaman stok per toko =====
+  const GuardedAccessories = () => {
+    const { id } = useParams();
+    const tokoId = Number(id);
+
+    if (user?.role === "superadmin" || user?.role === "admin") {
+      return <StockAccessories />;
+    }
+
+    if (user?.role?.startsWith("pic_toko")) {
+      const allowed =
+        Number(user.toko) ||
+        Number(String(user.role).replace("pic_toko", "")) ||
+        1;
+      if (allowed !== tokoId) return <Navigate to={`/toko/${allowed}`} replace />;
+      return <StockAccessories />;
+    }
+
+    return <Navigate to="/dashboard" replace />;
+  };
+
+  const GuardedHandphone = () => {
+    const { id } = useParams();
+    const tokoId = Number(id);
+
+    if (user?.role === "superadmin" || user?.role === "admin") {
+      return <StockHandphone />;
+    }
+
+    if (user?.role?.startsWith("pic_toko")) {
+      const allowed =
+        Number(user.toko) ||
+        Number(String(user.role).replace("pic_toko", "")) ||
+        1;
+      if (allowed !== tokoId) return <Navigate to={`/toko/${allowed}`} replace />;
+      return <StockHandphone />;
+    }
+
+    return <Navigate to="/dashboard" replace />;
+  };
+
+  const GuardedMotor = () => {
+    const { id } = useParams();
+    const tokoId = Number(id);
+
+    if (user?.role === "superadmin" || user?.role === "admin") {
+      return <StockMotorListrik />;
+    }
+
+    if (user?.role?.startsWith("pic_toko")) {
+      const allowed =
+        Number(user.toko) ||
+        Number(String(user.role).replace("pic_toko", "")) ||
+        1;
+      if (allowed !== tokoId) return <Navigate to={`/toko/${allowed}`} replace />;
+      return <StockMotorListrik />;
+    }
+
+    return <Navigate to="/dashboard" replace />;
+  };
+
   return (
     <Router>
       {!user ? (
         // ===== Belum login =====
         <Routes>
-          <Route
-            path="/"
-            element={<Login onLogin={handleLogin} users={users} />}
-          />
+          <Route path="/" element={<Login onLogin={handleLogin} users={users} />} />
           <Route path="/register" element={<Register addUser={addUser} />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
@@ -175,7 +231,7 @@ export default function App() {
                 <Route
                   path="/dashboard"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin", "pic_toko"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <Dashboard user={user} />
                     </ProtectedRoute>
                   }
@@ -185,17 +241,43 @@ export default function App() {
                 <Route
                   path="/toko/:id"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin", "pic_toko"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <TokoRoute />
                     </ProtectedRoute>
                   }
                 />
 
-                {/* Modul khusus superadmin */}
+                {/* Halaman Stok per toko */}
+                <Route
+                  path="/toko/:id/stock-accessories"
+                  element={
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
+                      <GuardedAccessories />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/toko/:id/stock-handphone"
+                  element={
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
+                      <GuardedHandphone />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/toko/:id/stock-motor-listrik"
+                  element={
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
+                      <GuardedMotor />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Modul khusus superadmin/admin */}
                 <Route
                   path="/user-management"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
                       <UserManagement />
                     </ProtectedRoute>
                   }
@@ -203,7 +285,7 @@ export default function App() {
                 <Route
                   path="/sales-report"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
                       <SalesReport />
                     </ProtectedRoute>
                   }
@@ -211,7 +293,7 @@ export default function App() {
                 <Route
                   path="/inventory-report"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
                       <InventoryReport />
                     </ProtectedRoute>
                   }
@@ -219,39 +301,15 @@ export default function App() {
                 <Route
                   path="/pembelian-motor-listrik"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
                       <PembelianMotorListrik />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/stock-motor-listrik"
-                  element={
-                    <ProtectedRoute allowedRoles={["superadmin"]}>
-                      <StockMotorListrik />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/stock-handphone"
-                  element={
-                    <ProtectedRoute allowedRoles={["superadmin"]}>
-                      <StockHandphone />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/stock-accessories"
-                  element={
-                    <ProtectedRoute allowedRoles={["superadmin"]}>
-                      <StockAccessories />
                     </ProtectedRoute>
                   }
                 />
                 <Route
                   path="/keuangan"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
                       <Keuangan />
                     </ProtectedRoute>
                   }
@@ -259,7 +317,7 @@ export default function App() {
                 <Route
                   path="/products"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
                       <Products />
                     </ProtectedRoute>
                   }
@@ -267,7 +325,7 @@ export default function App() {
                 <Route
                   path="/data-management"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
                       <DataManagement />
                     </ProtectedRoute>
                   }
@@ -275,7 +333,7 @@ export default function App() {
                 <Route
                   path="/surat-jalan"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
                       <SuratJalan />
                     </ProtectedRoute>
                   }
@@ -283,7 +341,7 @@ export default function App() {
                 <Route
                   path="/invoice"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
                       <Invoice />
                     </ProtectedRoute>
                   }
@@ -293,7 +351,7 @@ export default function App() {
                 <Route
                   path="/penjualan-handphone"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin", "pic_toko"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <PenjualanHandphone />
                     </ProtectedRoute>
                   }
@@ -301,7 +359,7 @@ export default function App() {
                 <Route
                   path="/penjualan-motor-listrik"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin", "pic_toko"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <PenjualanMotorListrik />
                     </ProtectedRoute>
                   }
@@ -309,7 +367,7 @@ export default function App() {
                 <Route
                   path="/input-penjualan"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin", "pic_toko"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <InputPenjualan />
                     </ProtectedRoute>
                   }
@@ -317,7 +375,7 @@ export default function App() {
                 <Route
                   path="/accessories"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin", "pic_toko"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <Accessories />
                     </ProtectedRoute>
                   }
@@ -325,7 +383,7 @@ export default function App() {
                 <Route
                   path="/service-handphone"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin", "pic_toko"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <ServiceHandphone />
                     </ProtectedRoute>
                   }
@@ -333,7 +391,7 @@ export default function App() {
                 <Route
                   path="/service-motor-listrik"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin", "pic_toko"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <ServiceMotorListrik />
                     </ProtectedRoute>
                   }
@@ -341,7 +399,7 @@ export default function App() {
                 <Route
                   path="/struk-penjualan"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin", "pic_toko"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <StrukPenjualan />
                     </ProtectedRoute>
                   }
@@ -349,12 +407,13 @@ export default function App() {
                 <Route
                   path="/struk-penjualan-imei"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin", "pic_toko"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <StrukPenjualanIMEI />
                     </ProtectedRoute>
                   }
                 />
 
+                {/* Fallback */}
                 <Route path="*" element={<Navigate to="/dashboard" />} />
               </Routes>
             </div>

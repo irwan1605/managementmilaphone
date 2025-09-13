@@ -1,97 +1,138 @@
 // src/pages/stock/StockAccessories.jsx
-import React, { useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
-
+import { useNavigate, useParams } from "react-router-dom";
 import TOKO_LABELS from "../../data/TokoLabels";
 import { getStockIndex } from "../../data/StockBarang";
 
 const toNum = (v) => (isNaN(Number(v)) ? 0 : Number(v));
+const today = () => new Date().toISOString().slice(0, 10);
 
 export default function StockAccessories() {
-  const [params] = useSearchParams();
-  const tokoId = Number(params.get("tokoId") || 1);
-  const tokoName = TOKO_LABELS[tokoId] || "TOKO 1";
-
-  const { accessories = [] } = useMemo(() => getStockIndex(tokoName) || {}, [tokoName]);
-
-  const [rows, setRows] = useState(() =>
-    accessories.map((r, i) => ({
-      id: r.id ?? i + 1,
-      nama: r.nama || r.name || "",
-      imei: r.imei || r.sn || "",
-      stok_sistem: toNum(r.stok_sistem ?? r.stok ?? r.stock ?? 0),
-      stok_fisik: toNum(r.stok_fisik ?? r.fisik ?? 0),
-      ket: r.keterangan || r.ket || "",
-    }))
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const tokoId = Number(id);
+  const tokoName = useMemo(
+    () => TOKO_LABELS[tokoId] || `Toko ${tokoId}`,
+    [tokoId]
   );
 
-  const [form, setForm] = useState({
-    nama: "",
-    imei: "",
-    stok_sistem: 0,
-    stok_fisik: 0,
-    ket: "",
+  const storageKey = `stock:accessories:${tokoName}`;
+
+  // ambil dari master data (default)
+  const masterRows = useMemo(() => {
+    const idx = getStockIndex(tokoName) || {};
+    const list = idx.accessories || [];
+    // normalisasi
+    return (list || []).map((it, i) => ({
+      id: i + 1,
+      tanggal: it.tanggal || today(),
+      namaBarang: it.namaBarang || it.name || it.nama || "",
+      imei: it.imei || it.serial || "",
+      stokSistem: toNum(it.stokSistem ?? it.stok ?? 0),
+      stokFisik: toNum(it.stokFisik ?? 0),
+      keterangan: it.keterangan || "",
+    }));
+  }, [tokoName]);
+
+  // prefer data localStorage jika ada
+  const [rows, setRows] = useState(() => {
+    try {
+      const ls = JSON.parse(localStorage.getItem(storageKey));
+      if (Array.isArray(ls)) return ls;
+    } catch {}
+    return masterRows;
   });
 
-  const fileRef = useRef(null);
+  useEffect(() => {
+    localStorage.setItem(storageKey, JSON.stringify(rows));
+  }, [rows, storageKey]);
+
+  const [form, setForm] = useState({
+    tanggal: today(),
+    namaBarang: "",
+    imei: "",
+    stokSistem: 0,
+    stokFisik: 0,
+    keterangan: "",
+  });
 
   const addRow = () => {
-    const nr = {
-      id: rows.length ? Math.max(...rows.map((x) => x.id)) + 1 : 1,
-      nama: form.nama,
-      imei: form.imei,
-      stok_sistem: toNum(form.stok_sistem),
-      stok_fisik: toNum(form.stok_fisik),
-      ket: form.ket,
+    if (!form.namaBarang.trim()) return alert("Nama barang wajib diisi");
+    const newRow = {
+      id: rows.length ? Math.max(...rows.map((r) => r.id)) + 1 : 1,
+      ...form,
+      stokSistem: toNum(form.stokSistem),
+      stokFisik: toNum(form.stokFisik),
     };
-    setRows((p) => [nr, ...p]);
-    setForm({ nama: "", imei: "", stok_sistem: 0, stok_fisik: 0, ket: "" });
+    setRows((prev) => [newRow, ...prev]);
+    setForm({
+      tanggal: today(),
+      namaBarang: "",
+      imei: "",
+      stokSistem: 0,
+      stokFisik: 0,
+      keterangan: "",
+    });
   };
 
-  const delRow = (id) => {
-    if (!window.confirm("Hapus data ini?")) return;
-    setRows((p) => p.filter((x) => x.id !== id));
+  const deleteRow = (id) => {
+    if (!window.confirm("Hapus baris ini?")) return;
+    setRows((prev) => prev.filter((r) => r.id !== id));
   };
 
-  const [editId, setEditId] = useState(null);
-  const [editDraft, setEditDraft] = useState(null);
-  const beginEdit = (r) => {
-    setEditId(r.id);
-    setEditDraft({ ...r });
+  const [editingId, setEditingId] = useState(null);
+  const [draft, setDraft] = useState(null);
+
+  const startEdit = (row) => {
+    setEditingId(row.id);
+    setDraft({ ...row });
   };
   const cancelEdit = () => {
-    setEditId(null);
-    setEditDraft(null);
+    setEditingId(null);
+    setDraft(null);
   };
   const saveEdit = () => {
-    setRows((p) => p.map((x) => (x.id === editId ? { ...editDraft } : x)));
+    setRows((prev) => prev.map((r) => (r.id === editingId ? { ...draft } : r)));
     cancelEdit();
   };
 
   const exportExcel = () => {
-    const data = rows.map((r) => ({
-      NAMA_BARANG: r.nama,
-      IMEI: r.imei,
-      STOK_SISTEM: r.stok_sistem,
-      STOK_FISIK: r.stok_fisik,
-      KETERANGAN: r.ket,
-      TOKO: tokoName,
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
+    const ws = XLSX.utils.json_to_sheet(
+      rows.map((r) => ({
+        TANGGAL: r.tanggal,
+        NAMA_BARANG: r.namaBarang,
+        IMEI: r.imei,
+        STOK_SISTEM: r.stokSistem,
+        STOK_FISIK: r.stokFisik,
+        KETERANGAN: r.keterangan,
+      }))
+    );
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Accessories");
-    XLSX.writeFile(wb, `Stock_Accessories_${tokoName}.xlsx`);
+    const ymd = today().replace(/-/g, "");
+    const safe = tokoName.replace(/[^\p{L}\p{N}_-]+/gu, "_");
+    XLSX.writeFile(wb, `STOCK_ACCESSORIES_${safe}_${ymd}.xlsx`);
   };
+
+  const totalItem = rows.length;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Stock Accessories — {tokoName}</h1>
-          <p className="text-slate-600">Kelola stok accessories (form, tabel, export Excel).</p>
+          <h1 className="text-2xl md:text-3xl font-bold">
+            Stock Accessories — {tokoName}
+          </h1>
+          <p className="text-slate-600">Total item: {totalItem}</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(-1)}
+            className="rounded-lg border bg-white px-3 py-2 text-sm shadow-sm hover:bg-slate-50"
+          >
+            ← Kembali
+          </button>
           <button
             onClick={exportExcel}
             className="rounded-lg border bg-white px-3 py-2 text-sm shadow-sm hover:bg-slate-50"
@@ -103,14 +144,23 @@ export default function StockAccessories() {
 
       {/* Form tambah */}
       <div className="rounded-2xl border bg-white p-4 shadow-sm">
-        <h2 className="text-lg font-semibold mb-3">Tambah / Update Stock</h2>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <h2 className="text-lg font-semibold mb-3">Tambah Stok</h2>
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
           <div>
-            <label className="text-xs text-slate-600">NAMA BARANG</label>
+            <label className="text-xs text-slate-600">Tanggal</label>
+            <input
+              type="date"
+              className="w-full border rounded px-2 py-1"
+              value={form.tanggal}
+              onChange={(e) => setForm({ ...form, tanggal: e.target.value })}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-xs text-slate-600">Nama Barang</label>
             <input
               className="w-full border rounded px-2 py-1"
-              value={form.nama}
-              onChange={(e) => setForm({ ...form, nama: e.target.value })}
+              value={form.namaBarang}
+              onChange={(e) => setForm({ ...form, namaBarang: e.target.value })}
             />
           </div>
           <div>
@@ -122,32 +172,39 @@ export default function StockAccessories() {
             />
           </div>
           <div>
-            <label className="text-xs text-slate-600">STOK SISTEM</label>
+            <label className="text-xs text-slate-600">Stok Sistem</label>
             <input
               type="number"
               className="w-full border rounded px-2 py-1 text-right"
-              value={form.stok_sistem}
-              onChange={(e) => setForm({ ...form, stok_sistem: e.target.value })}
+              value={form.stokSistem}
+              onChange={(e) =>
+                setForm({ ...form, stokSistem: toNum(e.target.value) })
+              }
             />
           </div>
           <div>
-            <label className="text-xs text-slate-600">STOK FISIK</label>
+            <label className="text-xs text-slate-600">Stok Fisik</label>
             <input
               type="number"
               className="w-full border rounded px-2 py-1 text-right"
-              value={form.stok_fisik}
-              onChange={(e) => setForm({ ...form, stok_fisik: e.target.value })}
+              value={form.stokFisik}
+              onChange={(e) =>
+                setForm({ ...form, stokFisik: toNum(e.target.value) })
+              }
             />
           </div>
           <div>
-            <label className="text-xs text-slate-600">KETERANGAN</label>
+            <label className="text-xs text-slate-600">Keterangan</label>
             <input
               className="w-full border rounded px-2 py-1"
-              value={form.ket}
-              onChange={(e) => setForm({ ...form, ket: e.target.value })}
+              value={form.keterangan}
+              onChange={(e) =>
+                setForm({ ...form, keterangan: e.target.value })
+              }
             />
           </div>
         </div>
+
         <div className="mt-3">
           <button
             onClick={addRow}
@@ -161,42 +218,47 @@ export default function StockAccessories() {
       {/* Tabel */}
       <div className="rounded-2xl border bg-white p-4 shadow-sm">
         <div className="overflow-x-auto">
-          <table className="min-w-[900px] text-sm">
+          <table className="min-w-[1100px] text-sm">
             <thead className="bg-slate-50 text-slate-600">
               <tr>
-                <th className="px-3 py-2 text-left">NAMA BARANG</th>
+                <th className="px-3 py-2 text-left">Tanggal</th>
+                <th className="px-3 py-2 text-left">Nama Barang</th>
                 <th className="px-3 py-2 text-left">IMEI</th>
-                <th className="px-3 py-2 text-right">STOK SISTEM</th>
-                <th className="px-3 py-2 text-right">STOK FISIK</th>
-                <th className="px-3 py-2 text-left">KETERANGAN</th>
+                <th className="px-3 py-2 text-right">Stok Sistem</th>
+                <th className="px-3 py-2 text-right">Stok Fisik</th>
+                <th className="px-3 py-2 text-left">Keterangan</th>
                 <th className="px-3 py-2 text-left">Aksi</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) =>
-                editId === r.id && editDraft ? (
-                  <tr key={r.id} className="border-b last:border-0 bg-slate-50/50">
+              {rows.map((row) =>
+                editingId === row.id && draft ? (
+                  <tr key={row.id} className="border-b last:border-0 bg-slate-50/50">
+                    <td className="px-3 py-2">
+                      <input
+                        type="date"
+                        className="border rounded px-2 py-1"
+                        value={draft.tanggal}
+                        onChange={(e) =>
+                          setDraft((d) => ({ ...d, tanggal: e.target.value }))
+                        }
+                      />
+                    </td>
                     <td className="px-3 py-2">
                       <input
                         className="border rounded px-2 py-1 w-56"
-                        value={editDraft.nama}
-                        onChange={(e) => setEditDraft((d) => ({ ...d, nama: e.target.value }))}
+                        value={draft.namaBarang}
+                        onChange={(e) =>
+                          setDraft((d) => ({ ...d, namaBarang: e.target.value }))
+                        }
                       />
                     </td>
                     <td className="px-3 py-2">
                       <input
-                        className="border rounded px-2 py-1 w-44"
-                        value={editDraft.imei}
-                        onChange={(e) => setEditDraft((d) => ({ ...d, imei: e.target.value }))}
-                      />
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <input
-                        type="number"
-                        className="border rounded px-2 py-1 text-right w-24"
-                        value={editDraft.stok_sistem}
+                        className="border rounded px-2 py-1 w-40"
+                        value={draft.imei}
                         onChange={(e) =>
-                          setEditDraft((d) => ({ ...d, stok_sistem: toNum(e.target.value) }))
+                          setDraft((d) => ({ ...d, imei: e.target.value }))
                         }
                       />
                     </td>
@@ -204,17 +266,29 @@ export default function StockAccessories() {
                       <input
                         type="number"
                         className="border rounded px-2 py-1 text-right w-24"
-                        value={editDraft.stok_fisik}
+                        value={draft.stokSistem}
                         onChange={(e) =>
-                          setEditDraft((d) => ({ ...d, stok_fisik: toNum(e.target.value) }))
+                          setDraft((d) => ({ ...d, stokSistem: toNum(e.target.value) }))
+                        }
+                      />
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <input
+                        type="number"
+                        className="border rounded px-2 py-1 text-right w-24"
+                        value={draft.stokFisik}
+                        onChange={(e) =>
+                          setDraft((d) => ({ ...d, stokFisik: toNum(e.target.value) }))
                         }
                       />
                     </td>
                     <td className="px-3 py-2">
                       <input
-                        className="border rounded px-2 py-1 w-56"
-                        value={editDraft.ket}
-                        onChange={(e) => setEditDraft((d) => ({ ...d, ket: e.target.value }))}
+                        className="border rounded px-2 py-1 w-60"
+                        value={draft.keterangan}
+                        onChange={(e) =>
+                          setDraft((d) => ({ ...d, keterangan: e.target.value }))
+                        }
                       />
                     </td>
                     <td className="px-3 py-2">
@@ -235,22 +309,23 @@ export default function StockAccessories() {
                     </td>
                   </tr>
                 ) : (
-                  <tr key={r.id} className="border-b last:border-0">
-                    <td className="px-3 py-2">{r.nama}</td>
-                    <td className="px-3 py-2">{r.imei || "-"}</td>
-                    <td className="px-3 py-2 text-right">{r.stok_sistem}</td>
-                    <td className="px-3 py-2 text-right">{r.stok_fisik}</td>
-                    <td className="px-3 py-2">{r.ket || "-"}</td>
+                  <tr key={row.id} className="border-b last:border-0">
+                    <td className="px-3 py-2">{row.tanggal}</td>
+                    <td className="px-3 py-2">{row.namaBarang}</td>
+                    <td className="px-3 py-2">{row.imei || "-"}</td>
+                    <td className="px-3 py-2 text-right">{row.stokSistem}</td>
+                    <td className="px-3 py-2 text-right">{row.stokFisik}</td>
+                    <td className="px-3 py-2">{row.keterangan || "-"}</td>
                     <td className="px-3 py-2">
                       <div className="flex gap-2">
                         <button
-                          onClick={() => beginEdit(r)}
+                          onClick={() => startEdit(row)}
                           className="px-2 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700"
                         >
                           Edit
                         </button>
                         <button
-                          onClick={() => delRow(r.id)}
+                          onClick={() => deleteRow(row.id)}
                           className="px-2 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700"
                         >
                           Hapus
@@ -262,8 +337,8 @@ export default function StockAccessories() {
               )}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
-                    Belum ada data aksesori untuk {tokoName}.
+                  <td colSpan={7} className="px-3 py-6 text-center text-slate-500">
+                    Belum ada data stok Accessories untuk {tokoName}.
                   </td>
                 </tr>
               )}

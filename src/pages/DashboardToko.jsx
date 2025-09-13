@@ -3,14 +3,13 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 
-/* ================== DATA SOURCES ================== */
-// Nama toko tunggal
+/* ========== Satu sumber nama toko ========== */
 import TOKO_LABELS from "../data/TokoLabels";
 
-// Master harga & katalog produk
+/* ========== Master harga & katalog ========== */
 import { getBrandIndex, findHarga } from "../data/MasterDataHargaPenjualan";
 
-// Master list (dropdown) & helper
+/* ========== Master list data dropdown & helper ========== */
 import {
   PAYMENT_METHODS,
   PRICE_CATEGORIES,
@@ -21,12 +20,13 @@ import {
   getMdr,
   getBateraiByBrandProduct,
   getChargerByBrandProduct,
+  getBungaByTenor, // <-- pastikan diexport dari ../data/ListDataPenjualan
 } from "../data/ListDataPenjualan";
 
-// STOCK helper (angka ringkas kartu stok)
+/* ========== Helper stok untuk 3 kartu ringkas ========== */
 import { getStockIndex } from "../data/StockBarang";
 
-/* ================= Util ================= */
+/* ================= Utils ================= */
 const toNum = (v) => (isNaN(Number(v)) ? 0 : Number(v));
 const unique = (arr) =>
   Array.from(new Set((arr || []).map((x) => (x ?? "").toString().trim()).filter(Boolean)));
@@ -53,6 +53,15 @@ function parseXlsxDate(v) {
   return new Date().toISOString().slice(0, 10);
 }
 
+const formatDateTime = (d) => {
+  try {
+    const dt = new Date(d);
+    return `${dt.toLocaleDateString("id-ID")} ${dt.toLocaleTimeString("id-ID")}`;
+  } catch {
+    return d || "-";
+  }
+};
+
 /* ============== Import normalizer ============== */
 function normalizeRowFromExcel(row) {
   const lower = Object.fromEntries(
@@ -69,6 +78,7 @@ function normalizeRowFromExcel(row) {
   const tanggal = parseXlsxDate(
     pick("tanggal", "tgl transaksi", "tgl", "tanggal transaksi", "date")
   );
+
   const brand = pick("brand", "merk", "merek");
   const produk =
     pick("sepeda listrik", "sepedalistrik", "type", "tipe", "produk", "product", "name", "nama") ||
@@ -106,22 +116,19 @@ function normalizeRowFromExcel(row) {
   const dpMerchant = toNum(pick("dp user via merchant", "dp merchant (piutang)"));
   const dpToko = toNum(pick("dp user ke toko", "dp toko (cash)"));
   const dpTalangan = toNum(pick("request dp talangan", "dp talangan"));
-
   const imei1 = pick("imei/no dinamo/rangka", "imei", "serial", "no rangka") || "";
   const imei2 = pick("imei/no dinamo/rangka 2", "imei2", "serial2", "no rangka 2") || "";
-
   const ongkirHsCard = toNum(pick("ongkir/hs card", "ongkir", "hs card"));
   const aksesoris1Desc = pick("aksesoris/sparepart", "aksesoris 1");
   const aksesoris1Amount = toNum(pick("aksesoris/sparepart rp", "aksesoris 1 rp"));
   const aksesoris2Desc = pick("aksesoris/sparepart 2");
   const aksesoris2Amount = toNum(pick("aksesoris/sparepart 2 rp"));
   const bundlingProtectAmount = toNum(pick("bundling mp proteck", "bundling proteck"));
-
   const free1 = pick("free/kelengkapan unit", "kelengkapan 1");
   const free2 = pick("free/kelengkapan unit 2", "kelengkapan 2");
   const free3 = pick("free/kelengkapan unit 3", "kelengkapan 3");
 
-  // identitas user / order
+  // tambahan identitas user/order
   const akunPelanggan = pick("akun transaksi (pelanggan)", "akun pelanggan", "akun");
   const noHp = pick("no hp user / wa", "no hp", "whatsapp", "wa");
   const noKontrak = pick("no. kontrak/id order", "id order", "kontrak");
@@ -181,7 +188,7 @@ function normalizeRowFromExcel(row) {
   };
 }
 
-/* ============== Perhitungan finansial ============== */
+/* ============== Perhitungan ============== */
 function computeFinancials(row, tokoName) {
   const qty = toNum(row.qty);
   const harga = toNum(row.harga);
@@ -261,14 +268,22 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
   const navigate = useNavigate();
   const tokoName = useMemo(() => TOKO_LABELS[Number(tokoId)] || `Toko ${tokoId}`, [tokoId]);
 
-  // brand/product catalog
+  // stok ringkas untuk 3 kartu
+  const stockIdx = useMemo(() => getStockIndex(tokoName) || {}, [tokoName]);
+  const accCount = (stockIdx.accessories || []).length;
+  const hpCount = (stockIdx.handphone || []).length;
+  const molisCount = (stockIdx.motor_listrik || []).length;
+
+  // katalog/brand
   const brandIndex = useMemo(() => getBrandIndex(), []);
   const brandOptions = useMemo(() => brandIndex.map((b) => b.brand), [brandIndex]);
 
-  // Sales related
+  // sales options
   const salesOptions = useMemo(() => getSalesByToko(tokoName), [tokoName]);
   const SH_LIST = useMemo(() => unique(salesOptions.map((s) => s.sh)), [salesOptions]);
   const SL_LIST = useMemo(() => unique(salesOptions.map((s) => s.sl)), [salesOptions]);
+  const STORE_LIST = useMemo(() => unique(salesOptions.map((s) => s.store)), [salesOptions]);
+  const TUYUL_LIST = useMemo(() => unique(salesOptions.map((s) => s.tuyul)), [salesOptions]);
 
   /* ---------- Data tabel ---------- */
   const [rows, setRows] = useState(() =>
@@ -276,7 +291,7 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
       id: r.id ?? i + 1,
       tanggal: r.tanggal || new Date().toISOString().slice(0, 10),
 
-      brand: r.brand ?? brandOptions[0] ?? "",
+      brand: r.brand ?? "",
       produk: r.produk ?? "",
       warna: r.warna ?? "",
       baterai: r.baterai ?? "",
@@ -328,7 +343,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
       tglPengambilan: r.tglPengambilan || "",
       alamatPengiriman: r.alamatPengiriman || "",
 
+      // approval status
       approved: !!r.approved,
+      approvedBy: r.approvedBy || "",
+      approvedAt: r.approvedAt || "",
     }))
   );
 
@@ -346,6 +364,21 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
       },
       { totalTransaksi: 0, totalQty: 0, totalOmzet: 0, totalGrand: 0, totalNet: 0 }
     );
+  }, [rows, tokoName]);
+
+  const paymentSummary = useMemo(() => {
+    const map = new Map();
+    for (const r of rows) {
+      const key = r.paymentMethod || "Cash";
+      const f = computeFinancials(r, tokoName);
+      if (!map.has(key)) map.set(key, { count: 0, subtotal: 0, grandTotal: 0, net: 0 });
+      const m = map.get(key);
+      m.count += 1;
+      m.subtotal += f.subtotal;
+      m.grandTotal += f.grandTotal;
+      m.net += f.net;
+    }
+    return Array.from(map.entries()).map(([method, val]) => ({ method, ...val }));
   }, [rows, tokoName]);
 
   /* ---------- Form ---------- */
@@ -370,7 +403,7 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
     storeName: "",
 
     // Produk/Harga
-    brand: brandOptions[0] || "",
+    brand: (getBrandIndex()[0] && getBrandIndex()[0].brand) || "",
     produk: "",
     warna: "",
     baterai: "",
@@ -416,16 +449,16 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
   // produk dropdowns
   const productOptions = useMemo(() => {
     if (!form.brand) return [];
-    const b = brandIndex.find((x) => x.brand === form.brand);
+    const b = getBrandIndex().find((x) => x.brand === form.brand);
     return b ? b.products.map((p) => p.name) : [];
-  }, [form.brand, brandIndex]);
+  }, [form.brand]);
 
   const warnaOptions = useMemo(() => {
     if (!form.brand || !form.produk) return [];
-    const b = brandIndex.find((x) => x.brand === form.brand);
+    const b = getBrandIndex().find((x) => x.brand === form.brand);
     const p = b?.products.find((pp) => pp.name === form.produk);
     return p ? p.warna : [];
-  }, [form.brand, form.produk, brandIndex]);
+  }, [form.brand, form.produk]);
 
   const bateraiOptions = useMemo(
     () => getBateraiByBrandProduct(form.brand, form.produk) || [],
@@ -436,7 +469,7 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
     [form.brand, form.produk]
   );
 
-  // Auto harga dari master saat pilih produk/warna/hargaType
+  // Auto harga dari master
   useEffect(() => {
     if (!form.produk) return;
     const row = findHarga({
@@ -476,6 +509,27 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
     }
   }, [form.salesName, tokoName]);
 
+  // Auto bunga dari tenor (mapping helper)
+  useEffect(() => {
+    const t = toNum(form.tenor);
+    if (!t) {
+      setForm((f) => ({ ...f, bunga: 0 }));
+      return;
+    }
+    try {
+      const persen =
+        getBungaByTenor?.({
+          tenor: t,
+          method: form.paymentMethod,
+          brand: form.brand,
+          toko: tokoName,
+        }) ?? 0;
+      setForm((f) => ({ ...f, bunga: toNum(persen) }));
+    } catch {
+      // jika helper belum ada, biarkan manual
+    }
+  }, [form.tenor, form.paymentMethod, form.brand, tokoName]);
+
   const onChangeBrand = (val) =>
     setForm((f) => ({ ...f, brand: val, produk: "", warna: "", baterai: "", charger: "" }));
   const onChangeProduk = (val) =>
@@ -498,6 +552,8 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
       aksesoris2Amount: toNum(form.aksesoris2Amount),
       bundlingProtectAmount: toNum(form.bundlingProtectAmount),
       approved: false,
+      approvedBy: "",
+      approvedAt: "",
     };
     setRows((prev) => [newRow, ...prev]);
 
@@ -542,6 +598,8 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
       const toRows = normalized.map((r, i) => ({
         id: rows.length + i + 1,
         approved: false,
+        approvedBy: "",
+        approvedAt: "",
         ...r,
         tanggal: r.tanggal || today,
         hargaType: r.hargaType || (r.grosir ? "GROSIR" : "SRP"),
@@ -627,6 +685,8 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
         TGL_PENGAMBILAN: r.tglPengambilan,
         ALAMAT_PENGIRIMAN: r.alamatPengiriman,
         STATUS: r.approved ? "APPROVED" : "DRAFT",
+        APPROVED_BY: r.approvedBy || "",
+        APPROVED_AT: r.approvedAt || "",
       };
     });
     const ws = XLSX.utils.json_to_sheet(data);
@@ -662,8 +722,17 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
     if (!window.confirm("Hapus baris ini?")) return;
     setRows((prev) => prev.filter((r) => r.id !== id));
   };
+
+  const canApprove = user?.role === "superadmin" || user?.role === "admin";
   const approveRow = (id) => {
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, approved: true, approvedBy: user?.username || user?.role || "unknown" } : r)));
+    if (!canApprove) return;
+    const approver = user?.username || user?.name || user?.role || "admin";
+    const ts = new Date().toISOString();
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id === id ? { ...r, approved: true, approvedBy: approver, approvedAt: ts } : r
+      )
+    );
   };
 
   /* ============== Derived untuk card Payment ============== */
@@ -674,41 +743,11 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
     return Math.max(0, need - paid);
   }, [finPreview, form.dpMerchant, form.dpToko, form.dpTalangan]);
 
-  /* ====== Angka ringkas stok di kartu ====== */
-  const { accessories = [], handphone = [], motor_listrik = [] } = useMemo(() => {
-    try {
-      return getStockIndex(tokoName) || {};
-    } catch {
-      return {};
-    }
-  }, [tokoName]);
-
-  const sumStok = (arr) =>
-    (arr || []).reduce(
-      (acc, r) =>
-        acc +
-        (Number(r?.stok_sistem) ||
-          Number(r?.stok) ||
-          Number(r?.stock) ||
-          Number(r?.qty) ||
-          0),
-      0
-    );
-
-  const accCount = accessories.length;
-  const accQty = sumStok(accessories);
-
-  const hpCount = handphone.length;
-  const hpQty = sumStok(handphone);
-
-  const mlCount = motor_listrik.length;
-  const mlQty = sumStok(motor_listrik);
-
   /* ============== Render ============== */
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold">Dashboard Toko — {tokoName}</h1>
           <p className="text-slate-600">
@@ -741,85 +780,7 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
         </div>
       </div>
 
-      {/* ====== Kartu Stok (ringkas + glow + responsive) ====== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Accessories */}
-        <button
-          type="button"
-          onClick={() => navigate(`/stock-accessories?tokoId=${tokoId}`)}
-          className="
-            group relative w-full rounded-2xl border bg-white p-5 text-left shadow-sm
-            transition hover:shadow-xl hover:ring-2 hover:ring-offset-2 hover:ring-fuchsia-400
-            focus:outline-none focus:ring-2 focus:ring-fuchsia-400 active:scale-[0.99]
-          "
-        >
-          <div
-            className="pointer-events-none absolute -inset-0.5 rounded-2xl blur-lg opacity-0 
-                       transition group-hover:opacity-40"
-            style={{
-              background:
-                "radial-gradient(120px 80px at 10% 10%, rgba(217,70,239,.25), transparent 60%), radial-gradient(120px 80px at 90% 20%, rgba(59,130,246,.25), transparent 60%)",
-            }}
-          />
-          <div className="relative">
-            <div className="text-xs font-medium text-slate-500">Stock Accessories</div>
-            <div className="mt-1 text-2xl font-bold">{accQty}</div>
-            <div className="mt-1 text-xs text-slate-500">{accCount} item</div>
-          </div>
-        </button>
-
-        {/* Handphone */}
-        <button
-          type="button"
-          onClick={() => navigate(`/stock-handphone?tokoId=${tokoId}`)}
-          className="
-            group relative w-full rounded-2xl border bg-white p-5 text-left shadow-sm
-            transition hover:shadow-xl hover:ring-2 hover:ring-offset-2 hover:ring-cyan-400
-            focus:outline-none focus:ring-2 focus:ring-cyan-400 active:scale-[0.99]
-          "
-        >
-          <div
-            className="pointer-events-none absolute -inset-0.5 rounded-2xl blur-lg opacity-0 
-                       transition group-hover:opacity-40"
-            style={{
-              background:
-                "radial-gradient(120px 80px at 15% 15%, rgba(34,211,238,.25), transparent 60%), radial-gradient(120px 80px at 85% 25%, rgba(99,102,241,.25), transparent 60%)",
-            }}
-          />
-          <div className="relative">
-            <div className="text-xs font-medium text-slate-500">Stock Handphone</div>
-            <div className="mt-1 text-2xl font-bold">{hpQty}</div>
-            <div className="mt-1 text-xs text-slate-500">{hpCount} item</div>
-          </div>
-        </button>
-
-        {/* Motor Listrik */}
-        <button
-          type="button"
-          onClick={() => navigate(`/stock-motor-listrik?tokoId=${tokoId}`)}
-          className="
-            group relative w-full rounded-2xl border bg-white p-5 text-left shadow-sm
-            transition hover:shadow-xl hover:ring-2 hover:ring-offset-2 hover:ring-emerald-400
-            focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-[0.99]
-          "
-        >
-          <div
-            className="pointer-events-none absolute -inset-0.5 rounded-2xl blur-lg opacity-0 
-                       transition group-hover:opacity-40"
-            style={{
-              background:
-                "radial-gradient(120px 80px at 12% 12%, rgba(16,185,129,.25), transparent 60%), radial-gradient(120px 80px at 88% 28%, rgba(59,130,246,.25), transparent 60%)",
-            }}
-          />
-          <div className="relative">
-            <div className="text-xs font-medium text-slate-500">Stock Motor Listrik</div>
-            <div className="mt-1 text-2xl font-bold">{mlQty}</div>
-            <div className="mt-1 text-xs text-slate-500">{mlCount} item</div>
-          </div>
-        </button>
-      </div>
-
-      {/* Cards ringkasan penjualan */}
+      {/* Cards ringkasan */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
           <div className="text-sm text-slate-500">Total Transaksi</div>
@@ -841,6 +802,54 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
           <div className="text-sm text-slate-500">NET (setelah MDR)</div>
           <div className="mt-1 text-2xl font-semibold">{formatCurrency(totals.totalNet)}</div>
         </div>
+      </div>
+
+      {/* ==================== 3 Kartu Stok (ringkas) ==================== */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Accessories */}
+        <button
+          onClick={() => navigate(`/toko/${tokoId}/stock-accessories`)}
+          className="group relative rounded-2xl p-[2px] bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-500"
+        >
+          <div className="rounded-2xl bg-white p-5 flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-600">Stock Accessories</div>
+              <div className="text-2xl font-bold">{accCount} item</div>
+            </div>
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 opacity-80 group-hover:opacity-100 transition shadow-lg" />
+          </div>
+          <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-30 blur-xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-500 transition" />
+        </button>
+
+        {/* Handphone */}
+        <button
+          onClick={() => navigate(`/toko/${tokoId}/stock-handphone`)}
+          className="group relative rounded-2xl p-[2px] bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500"
+        >
+          <div className="rounded-2xl bg-white p-5 flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-600">Stock Handphone</div>
+              <div className="text-2xl font-bold">{hpCount} item</div>
+            </div>
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-sky-500 opacity-80 group-hover:opacity-100 transition shadow-lg" />
+          </div>
+          <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-30 blur-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500 transition" />
+        </button>
+
+        {/* Motor Listrik */}
+        <button
+          onClick={() => navigate(`/toko/${tokoId}/stock-motor-listrik`)}
+          className="group relative rounded-2xl p-[2px] bg-gradient-to-r from-amber-500 via-orange-500 to-red-500"
+        >
+          <div className="rounded-2xl bg-white p-5 flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-600">Stock Motor Listrik</div>
+              <div className="text-2xl font-bold">{molisCount} item</div>
+            </div>
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500 to-red-500 opacity-80 group-hover:opacity-100 transition shadow-lg" />
+          </div>
+          <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-30 blur-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 transition" />
+        </button>
       </div>
 
       {/* ==================== CARD 1 — PO PENJUALAN ==================== */}
@@ -879,7 +888,7 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                 onChange={(e) => setForm({ ...form, shName: e.target.value })}
               >
                 <option value="">— Pilih SH —</option>
-                {SH_LIST.map((v) => (
+                {unique(getSalesByToko(tokoName).map((s) => s.sh)).map((v) => (
                   <option key={v} value={v}>
                     {v}
                   </option>
@@ -913,7 +922,7 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                 onChange={(e) => setForm({ ...form, slName: e.target.value })}
               >
                 <option value="">— Pilih SL —</option>
-                {SL_LIST.map((v) => (
+                {unique(getSalesByToko(tokoName).map((s) => s.sl)).map((v) => (
                   <option key={v} value={v}>
                     {v}
                   </option>
@@ -924,12 +933,18 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
 
           <div className="md:col-span-2">
             <label className="text-xs text-slate-600">Nama Freelance/Teknisi</label>
-            <input
+            <select
               className="w-full border rounded px-2 py-1"
               value={form.tuyulName}
               onChange={(e) => setForm({ ...form, tuyulName: e.target.value })}
-              placeholder="Nama Freelance/Teknisi"
-            />
+            >
+              <option value="">— Pilih —</option>
+              {unique(getSalesByToko(tokoName).map((s) => s.tuyul)).map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="md:col-span-2">
@@ -1059,6 +1074,16 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-600">Bunga % (auto)</label>
+            <input
+              readOnly
+              className="w-full border rounded px-2 py-1 bg-slate-50 text-right"
+              value={toNum(form.bunga).toFixed(2)}
+              title="Diisi otomatis dari tenor via getBungaByTenor"
+            />
           </div>
 
           <div>
@@ -1338,7 +1363,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
               min={0}
               className="w-full border rounded px-2 py-1 text-right"
               value={form.bundlingProtectAmount}
-              onChange={(e) => setForm({ ...form, bundlingProtectAmount: toNum(e.target.value) })}
+              onChange={(e) =>
+                setForm({ ...form, bundlingProtectAmount: toNum(e.target.value) })
+              }
             />
           </div>
           <div className="md:col-span-4">
@@ -1411,6 +1438,7 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
       <div className="rounded-2xl border bg-white p-4 shadow-sm">
         <h2 className="text-lg font-semibold mb-3">PENJUALAN GROSIR</h2>
 
+        {/* ringkas: gunakan data hargaType=GROSIR */}
         <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
           <div className="md:col-span-3">
             <div className="text-sm text-slate-600">TOTAL BARANG SELIS MOLIS</div>
@@ -1426,16 +1454,14 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
             <div className="text-sm text-slate-600">TOTAL HARGA</div>
             <div className="font-semibold">
               {formatCurrency(
-                rows
-                  .filter((r) => r.hargaType === "GROSIR")
-                  .reduce((a, r) => a + computeFinancials(r, tokoName).subtotal, 0)
+                grosirRows.reduce((a, r) => a + computeFinancials(r, tokoName).subtotal, 0)
               )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* ==================== TABEL UTAMA ==================== */}
+      {/* ==================== TABEL UTAMA (tetap) ==================== */}
       <div className="rounded-2xl border bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">PO Penjualan — Semua</h2>
@@ -1456,7 +1482,7 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[1200px] text-sm">
+          <table className="min-w-[2300px] text-sm">
             <thead className="bg-slate-50 text-slate-600">
               <tr>
                 <th className="px-3 py-2 text-left">Tanggal</th>
@@ -1477,6 +1503,8 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                 <th className="px-3 py-2 text-right">DP Merch</th>
                 <th className="px-3 py-2 text-right">DP Toko</th>
                 <th className="px-3 py-2 text-right">DP Talangan</th>
+                <th className="px-3 py-2 text-right">Tenor</th>
+                <th className="px-3 py-2 text-right">Bunga %</th>
                 <th className="px-3 py-2 text-right">Cicilan/Bln</th>
                 <th className="px-3 py-2 text-right">Grand Total</th>
                 <th className="px-3 py-2 text-left">Sales</th>
@@ -1490,6 +1518,7 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                 <th className="px-3 py-2 text-left">Akun</th>
                 <th className="px-3 py-2 text-left">No HP/WA</th>
                 <th className="px-3 py-2 text-left">Status</th>
+                <th className="px-3 py-2 text-left">Approval Note</th>
                 <th className="px-3 py-2 text-left">Aksi</th>
               </tr>
             </thead>
@@ -1655,6 +1684,28 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           }
                         />
                       </td>
+
+                      <td className="px-3 py-2 text-right">
+                        <input
+                          type="number"
+                          className="border rounded px-2 py-1 text-right w-20"
+                          value={editDraft.tenor}
+                          onChange={(e) =>
+                            setEditDraft((d) => ({ ...d, tenor: toNum(e.target.value) }))
+                          }
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <input
+                          type="number"
+                          className="border rounded px-2 py-1 text-right w-20"
+                          value={editDraft.bunga}
+                          onChange={(e) =>
+                            setEditDraft((d) => ({ ...d, bunga: toNum(e.target.value) }))
+                          }
+                        />
+                      </td>
+
                       <td className="px-3 py-2 text-right">{formatCurrency(fe.cicilan)}</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(fe.grandTotal)}</td>
                       <td className="px-3 py-2">
@@ -1695,14 +1746,18 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                         <input
                           className="border rounded px-2 py-1 w-32"
                           value={editDraft.shName}
-                          onChange={(e) => setEditDraft((d) => ({ ...d, shName: e.target.value }))}
+                          onChange={(e) =>
+                            setEditDraft((d) => ({ ...d, shName: e.target.value }))
+                          }
                         />
                       </td>
                       <td className="px-3 py-2">
                         <input
                           className="border rounded px-2 py-1 w-32"
                           value={editDraft.slName}
-                          onChange={(e) => setEditDraft((d) => ({ ...d, slName: e.target.value }))}
+                          onChange={(e) =>
+                            setEditDraft((d) => ({ ...d, slName: e.target.value }))
+                          }
                         />
                       </td>
                       <td className="px-3 py-2">
@@ -1741,8 +1796,15 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                       </td>
                       <td className="px-3 py-2">
                         <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-[11px]">
-                          {editDraft.approved ? `APPROVED (${row.approvedBy || "-"})` : "DRAFT"}
+                          {editDraft.approved ? "APPROVED" : "DRAFT"}
                         </span>
+                      </td>
+                      <td className="px-3 py-2 text-xs text-slate-600">
+                        {editDraft.approved
+                          ? `By ${editDraft.approvedBy || "-"} @ ${formatDateTime(
+                              editDraft.approvedAt
+                            )}`
+                          : "-"}
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex gap-2">
@@ -1797,6 +1859,8 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                     <td className="px-3 py-2 text-right">{formatCurrency(row.dpMerchant)}</td>
                     <td className="px-3 py-2 text-right">{formatCurrency(row.dpToko)}</td>
                     <td className="px-3 py-2 text-right">{formatCurrency(row.dpTalangan)}</td>
+                    <td className="px-3 py-2 text-right">{row.tenor || 0}</td>
+                    <td className="px-3 py-2 text-right">{toNum(row.bunga).toFixed(2)}</td>
                     <td className="px-3 py-2 text-right">
                       {formatCurrency(computeFinancials(row, tokoName).cicilan)}
                     </td>
@@ -1816,15 +1880,22 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                     <td className="px-3 py-2">
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ${
-                          row.approved ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                          row.approved
+                            ? "bg-green-100 text-green-700"
+                            : "bg-yellow-100 text-yellow-700"
                         }`}
                       >
-                        {row.approved ? `APPROVED (${row.approvedBy || "-"})` : "DRAFT"}
+                        {row.approved ? "APPROVED" : "DRAFT"}
                       </span>
+                    </td>
+                    <td className="px-3 py-2 text-xs text-slate-600">
+                      {row.approved
+                        ? `By ${row.approvedBy || "-"} @ ${formatDateTime(row.approvedAt)}`
+                        : "-"}
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex gap-2">
-                        {!row.approved && (user?.role === "superadmin" || user?.role === "admin") && (
+                        {!row.approved && canApprove && (
                           <button
                             onClick={() => approveRow(row.id)}
                             className="px-2 py-1 text-xs rounded bg-emerald-600 text-white hover:bg-emerald-700"
@@ -1851,7 +1922,7 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={32} className="px-3 py-6 text-center text-slate-500">
+                  <td colSpan={35} className="px-3 py-6 text-center text-slate-500">
                     Belum ada data transaksi untuk {tokoName}.
                   </td>
                 </tr>
@@ -1892,7 +1963,8 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
 
       <p className="text-xs text-slate-500">
         Semua dropdown/rumus mengikuti file di folder <code>data</code>. MDR% & nominal otomatis,
-        “Sisa Limit Untuk BARANG” = Subtotal − (DP Merchant + DP Toko + DP Talangan).
+        Bunga% terisi otomatis saat memilih tenor (helper <code>getBungaByTenor</code>). “Sisa Limit
+        Untuk BARANG” = Subtotal − (DP Merchant + DP Toko + DP Talangan).
       </p>
     </div>
   );
