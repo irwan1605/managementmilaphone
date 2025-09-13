@@ -27,7 +27,7 @@ import { FiBox } from "react-icons/fi";
 import TOKO_LABELS, { ALL_TOKO_IDS } from "../data/TokoLabels";
 
 const Sidebar = ({ role, toko, onLogout }) => {
-  // ===== Role helpers (ditentukan sebelum state agar bisa dipakai sbg initial) =====
+  // ===== Role helpers =====
   const isSuperAdmin = role === "superadmin";
   const picMatch = /^pic_toko(\d+)$/i.exec(role || "");
   const picTokoId = picMatch ? Number(picMatch[1]) : (toko ? Number(toko) : null);
@@ -63,7 +63,7 @@ const Sidebar = ({ role, toko, onLogout }) => {
       </div>
 
       <nav className="mt-6 font-bold">
-        {/* ====== MODE SUPERADMIN: tampilkan semua menu ====== */}
+        {/* ====== MODE SUPERADMIN ====== */}
         {isSuperAdmin ? (
           <>
             {/* DASHBOARD PUSAT */}
@@ -125,6 +125,13 @@ const Sidebar = ({ role, toko, onLogout }) => {
                     <span className="ml-2">Laporan Keuangan</span>
                   </Link>
                 </li>
+                {/* ➕ Tambahan: Transfer Barang Gudang Pusat */}
+                <li>
+                  <Link to="/transfer-barang-pusat" className="flex items-center p-2 hover:bg-blue-500">
+                    <FiBox className="text-lg" />
+                    <span className="ml-2">Transfer Barang Gudang Pusat</span>
+                  </Link>
+                </li>
               </ul>
             )}
 
@@ -156,6 +163,7 @@ const Sidebar = ({ role, toko, onLogout }) => {
                     <span className="ml-2">Motor Listrik</span>
                   </Link>
                 </li>
+                {/* Jika sudah punya halaman khusus: ganti ke "/penjualan-accessories" */}
                 <li>
                   <Link to="/accessories" className="flex items-center p-2 hover:bg-blue-500">
                     <FaToolbox className="text-lg" />
@@ -292,8 +300,9 @@ const Sidebar = ({ role, toko, onLogout }) => {
             )}
           </>
         ) : (
-          /* ====== MODE PIC TOKO: hanya tampil Dashboard Toko + link tokonya ====== */
+          /* ====== MODE PIC TOKO ====== */
           <>
+            {/* DASHBOARD TOKO */}
             <button
               onClick={() => setShowSubMenuDashboardToko(!showSubMenuDashboardToko)}
               className="w-full flex items-center p-3 hover:bg-blue-500 text-left"
@@ -322,11 +331,138 @@ const Sidebar = ({ role, toko, onLogout }) => {
                 )}
               </ul>
             )}
+
+            {/* PENJUALAN */}
+            <button
+              onClick={() => setShowSubMenuPenjualan(!showSubMenuPenjualan)}
+              className="w-full flex items-center p-3 hover:bg-blue-500 text-left"
+            >
+              <FaShoppingCart className="text-xl" />
+              <span className="ml-2">PENJUALAN</span>
+            </button>
+            {showSubMenuPenjualan && (
+              <ul className="pl-6">
+                <li>
+                  <Link to="/input-penjualan" className="flex items-center p-2 hover:bg-blue-500">
+                    <FaClipboardList className="text-lg" />
+                    <span className="ml-2">Input Penjualan</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/penjualan-handphone" className="flex items-center p-2 hover:bg-blue-500">
+                    <FaMobileAlt className="text-lg" />
+                    <span className="ml-2">Handphone</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/penjualan-motor-listrik" className="flex items-center p-2 hover:bg-blue-500">
+                    <FaMotorcycle className="text-lg" />
+                    <span className="ml-2">Motor Listrik</span>
+                  </Link>
+                </li>
+                {/* Jika sudah punya halaman khusus: ganti ke "/penjualan-accessories" */}
+                <li>
+                  <Link to="/accessories" className="flex items-center p-2 hover:bg-blue-500">
+                    <FaToolbox className="text-lg" />
+                    <span className="ml-2">Accessories</span>
+                  </Link>
+                </li>
+              </ul>
+            )}
+
+            {/* SERVICE */}
+            <button
+              onClick={() => setShowSubMenuService(!showSubMenuService)}
+              className="w-full flex items-center p-3 hover:bg-blue-500 text-left"
+            >
+              <MdBuild className="text-xl" />
+              <span className="ml-2">SERVICE</span>
+            </button>
+            {showSubMenuService && (
+              <ul className="pl-6">
+                <li>
+                  <Link to="/service-handphone" className="flex items-center p-2 hover:bg-blue-500">
+                    <AiFillPhone className="text-lg" />
+                    <span className="ml-2">Service Handphone</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/service-motor-listrik" className="flex items-center p-2 hover:bg-blue-500">
+                    <FaMotorcycle className="text-lg" />
+                    <span className="ml-2">Service Motor Listrik</span>
+                  </Link>
+                </li>
+              </ul>
+            )}
+
+            {/* PRODUK & STOCK */}
+            <button
+              onClick={() => setShowSubMenuStock(!showSubMenuStock)}
+              className="w-full flex items-center p-3 hover:bg-blue-500 text-left"
+            >
+              <FiBox className="text-xl" />
+              <span className="ml-2">PRODUK DAN STOCK</span>
+            </button>
+            {showSubMenuStock && (
+              <ul className="pl-6">
+                <li>
+                  <Link to="/stock-handphone" className="flex items-center p-2 hover:bg-blue-500">
+                    <FaMobileAlt className="text-lg" />
+                    <span className="ml-2">Handphone</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/stock-motor-listrik" className="flex items-center p-2 hover:bg-blue-500">
+                    <FaMotorcycle className="text-lg" />
+                    <span className="ml-2">Motor Listrik</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/stock-accessories" className="flex items-center p-2 hover:bg-blue-500">
+                    <FaToolbox className="text-lg" />
+                    <span className="ml-2">Accessories</span>
+                  </Link>
+                </li>
+              </ul>
+            )}
+
+            {/* CETAK FAKTUR */}
+            <button
+              onClick={() => setShowSubMenuStruk(!showSubMenuStruk)}
+              className="w-full flex items-center p-3 hover:bg-blue-500 text-left"
+            >
+              <FaCashRegister className="mr-2" />
+              <span className="ml-2">CETAK FAKTUR</span>
+            </button>
+            {showSubMenuStruk && (
+              <ul className="pl-6">
+                <li>
+                  <Link to="/struk-penjualan" className="block pl-6 py-1 hover:bg-blue-600 rounded">
+                    Struk Faktur Penjualan
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/struk-penjualan-imei" className="block pl-6 py-1 hover:bg-blue-600 rounded">
+                    Struk Faktur Penjualan IMEI
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/surat-jalan" className="block pl-6 py-1 hover:bg-blue-600 rounded">
+                    Surat Jalan
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/invoice" className="block pl-6 py-1 hover:bg-blue-600 rounded">
+                    Invoice
+                  </Link>
+                </li>
+              </ul>
+            )}
           </>
         )}
       </nav>
 
-      {/* Tombol Keluar (merah + efek dari Sidebar.css) */}
+      {/* Tombol Keluar */}
       <div className="p-4">
         <button type="button" onClick={handleLogout} className="logout-btn">
           <LogOut size={18} className="logout-icon" />
