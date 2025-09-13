@@ -276,7 +276,7 @@ const Sidebar = ({ role, toko, onLogout }) => {
               <ul className="pl-6">
                 <li>
                   <Link
-                    to="/stock-handphone"
+                    to="/stock-handphone-pusat"
                     className="flex items-center p-2 hover:bg-blue-500"
                   >
                     <FaMobileAlt className="text-lg" />
@@ -285,7 +285,7 @@ const Sidebar = ({ role, toko, onLogout }) => {
                 </li>
                 <li>
                   <Link
-                    to="/stock-motor-listrik"
+                    to="/stock-motor-listrik-pusat"
                     className="flex items-center p-2 hover:bg-blue-500"
                   >
                     <FaMotorcycle className="text-lg" />
@@ -294,7 +294,7 @@ const Sidebar = ({ role, toko, onLogout }) => {
                 </li>
                 <li>
                   <Link
-                    to="/stock-accessories"
+                    to="/stock-accessories-pusat"
                     className="flex items-center p-2 hover:bg-blue-500"
                   >
                     <FaToolbox className="text-lg" />

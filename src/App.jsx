@@ -42,6 +42,11 @@ import PenjualanAccessories from "./pages/PenjualanAccessories";
 import TransferBarangPusat from "./pages/Reports/TransferBarangPusat";
 import PembelianProdukPusat from "./pages/PembelianProdukPusat";
 
+import StockAccessoriesPusat from "./pages/stock/StockAccessoriesPusat";
+import StockHandphonePusat from "./pages/stock/StockHandphonePusat";
+import StockMotorListrikPusatPusat from "./pages/stock/StockHandphonePusat";
+import StockMotorListrikPusat from "./pages/stock/StockMotorListrikPusat";
+
 // ---------- dummy data toko ----------
 const generateDummyData = (tokoName) =>
   Array.from({ length: 10 }, (_, i) => ({
@@ -426,10 +431,35 @@ export default function App() {
                 <Route
                   path="/service-motor-listrik"
                   element={
-                    <ProtectedRoute
-                      allowedRoles={["superadmin", "admin", "pic_toko"]}
-                    >
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <ServiceMotorListrik user={user} />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/stock-handphone-pusat"
+                  element={
+                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
+                      <StockHandphonePusat user={user} />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/stock-accessories-pusat"
+                  element={
+                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
+                      <StockAccessoriesPusat user={user} />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/stock-motor-listrik-pusat"
+                  element={
+                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
+                      <StockMotorListrikPusat user={user} />
                     </ProtectedRoute>
                   }
                 />
