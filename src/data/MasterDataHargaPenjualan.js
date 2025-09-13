@@ -183,4 +183,11 @@ const masterDataApi = {
   HARGA_PENJUALAN,
 };
 
+export function getWarnaByBrandProduct(brand, product) {
+  const idx = getBrandIndex();
+  const b = idx.find((x) => x.brand === brand);
+  const p = b?.products?.find((pp) => (pp.name || pp.product || "") === product);
+  return p?.warna || p?.colors || (p?.variants || []).map(v => v.warna || v.color).filter(Boolean) || [];
+}
+
 export default masterDataApi;

@@ -21,7 +21,6 @@ import ServiceHandphone from "./pages/ServiceHandphone";
 import ServiceMotorListrik from "./pages/ServiceMotorListrik";
 import PenjualanHandphone from "./pages/PenjualanHandphone";
 import PenjualanMotorListrik from "./pages/PenjualanMotorListrik";
-import Accessories from "./pages/Accessories";
 import DataManagement from "./pages/DataManagement";
 import PembelianMotorListrik from "./pages/PembelianMotorListrik";
 
@@ -40,6 +39,7 @@ import DashboardToko from "./pages/DashboardToko";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import defaultUsers from "./data/UserManagementRole";
+import PenjualanAccessories from "./pages/PenjualanAccessories";
 
 // ---------- dummy data toko ----------
 const generateDummyData = (tokoName) =>
@@ -376,7 +376,7 @@ export default function App() {
                   path="/accessories"
                   element={
                     <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
-                      <Accessories />
+                      <PenjualanAccessories />
                     </ProtectedRoute>
                   }
                 />
