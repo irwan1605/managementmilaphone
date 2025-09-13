@@ -230,63 +230,39 @@ const Sidebar = ({ role, toko, onLogout }) => {
               </ul>
             )}
 
-          {/* ====== MODE PIC TOKO (tambahkan SERVICE) ====== */}
-<>
-  <button
-    onClick={() => setShowSubMenuDashboardToko(!showSubMenuDashboardToko)}
-    className="w-full flex items-center p-3 hover:bg-blue-500 text-left"
-    title="Dashboard Toko"
-  >
-    <FaStore className="text-xl" />
-    <span className="ml-2">DASHBOARD TOKO</span>
-  </button>
-  {showSubMenuDashboardToko && (
-    <ul className="pl-6">
-      {visibleTokoIds.length === 1 ? (
-        <li>
-          <Link
-            to={`/toko/${visibleTokoIds[0]}`}
-            className="flex items-center p-2 hover:bg-blue-500"
-            title={`Buka Dashboard ${TOKO_LABELS[visibleTokoIds[0]]}`}
-          >
-            <FaStore className="text-sm" />
-            <span className="ml-2">{TOKO_LABELS[visibleTokoIds[0]]}</span>
-          </Link>
-        </li>
-      ) : (
-        <li className="p-2 text-xs text-yellow-100/90">
-          Akun PIC belum terhubung ke toko mana pun.
-        </li>
-      )}
-    </ul>
-  )}
-
-  {/* SERVICE untuk PIC */}
-  <button
-    onClick={() => setShowSubMenuService(!showSubMenuService)}
-    className="w-full flex items-center p-3 hover:bg-blue-500 text-left"
-  >
-    <MdBuild className="text-xl" />
-    <span className="ml-2">SERVICE</span>
-  </button>
-  {showSubMenuService && (
-    <ul className="pl-6">
-      <li>
-        <Link to="/service-handphone" className="flex items-center p-2 hover:bg-blue-500">
-          <AiFillPhone className="text-lg" />
-          <span className="ml-2">Service Handphone</span>
-        </Link>
-      </li>
-      <li>
-        <Link to="/service-motor-listrik" className="flex items-center p-2 hover:bg-blue-500">
-          <FaMotorcycle className="text-lg" />
-          <span className="ml-2">Service Motor Listrik</span>
-        </Link>
-      </li>
-    </ul>
-  )}
-</>
-
+            {/* ====== MODE PIC TOKO (tambahkan SERVICE) ====== */}
+            <>
+              {/* SERVICE untuk PIC */}
+              <button
+                onClick={() => setShowSubMenuService(!showSubMenuService)}
+                className="w-full flex items-center p-3 hover:bg-blue-500 text-left"
+              >
+                <MdBuild className="text-xl" />
+                <span className="ml-2">SERVICE</span>
+              </button>
+              {showSubMenuService && (
+                <ul className="pl-6">
+                  <li>
+                    <Link
+                      to="/service-handphone"
+                      className="flex items-center p-2 hover:bg-blue-500"
+                    >
+                      <AiFillPhone className="text-lg" />
+                      <span className="ml-2">Service Handphone</span>
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to="/service-motor-listrik"
+                      className="flex items-center p-2 hover:bg-blue-500"
+                    >
+                      <FaMotorcycle className="text-lg" />
+                      <span className="ml-2">Service Motor Listrik</span>
+                    </Link>
+                  </li>
+                </ul>
+              )}
+            </>
 
             {/* PRODUK & STOCK */}
             <button
