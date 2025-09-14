@@ -27,8 +27,6 @@ import DataManagement from "./pages/DataManagement";
 import StockAccessories from "./pages/stock/StockAccessories";
 import StockHandphone from "./pages/stock/StockHandphone";
 import StockMotorListrik from "./pages/stock/StockMotorListrik";
-
-import Keuangan from "./pages/Keuangan";
 import InputPenjualan from "./pages/InputPenjualan";
 import StrukPenjualan from "./pages/StrukPenjualan";
 import StrukPenjualanIMEI from "./pages/StrukPenjualanIMEI";
@@ -44,8 +42,9 @@ import PembelianProdukPusat from "./pages/PembelianProdukPusat";
 
 import StockAccessoriesPusat from "./pages/stock/StockAccessoriesPusat";
 import StockHandphonePusat from "./pages/stock/StockHandphonePusat";
-import StockMotorListrikPusatPusat from "./pages/stock/StockHandphonePusat";
 import StockMotorListrikPusat from "./pages/stock/StockMotorListrikPusat";
+import FinanceReport from "./pages/Reports/FinanceReport";
+import FinanceReportMonthly from "./pages/Reports/FinanceReportMonthly";
 
 // ---------- dummy data toko ----------
 const generateDummyData = (tokoName) =>
@@ -329,10 +328,18 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="/keuangan"
+                  path="/finance-report"
                   element={
                     <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
-                      <Keuangan />
+                      <FinanceReport />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/finance-report-monthly"
+                  element={
+                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
+                      <FinanceReportMonthly />
                     </ProtectedRoute>
                   }
                 />
@@ -381,9 +388,7 @@ export default function App() {
                 <Route
                   path="/penjualan-handphone"
                   element={
-                    <ProtectedRoute
-                      allowedRoles={["superadmin", "admin"]}
-                    >
+                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
                       <PenjualanHandphone />
                     </ProtectedRoute>
                   }
@@ -391,9 +396,7 @@ export default function App() {
                 <Route
                   path="/penjualan-motor-listrik"
                   element={
-                    <ProtectedRoute
-                      allowedRoles={["superadmin", "admin"]}
-                    >
+                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
                       <PenjualanMotorListrik />
                     </ProtectedRoute>
                   }
@@ -401,9 +404,7 @@ export default function App() {
                 <Route
                   path="/input-penjualan"
                   element={
-                    <ProtectedRoute
-                      allowedRoles={["superadmin", "admin"]}
-                    >
+                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
                       <InputPenjualan />
                     </ProtectedRoute>
                   }
@@ -411,9 +412,7 @@ export default function App() {
                 <Route
                   path="/accessories"
                   element={
-                    <ProtectedRoute
-                      allowedRoles={["superadmin", "admin"]}
-                    >
+                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
                       <PenjualanAccessories />
                     </ProtectedRoute>
                   }
@@ -431,7 +430,9 @@ export default function App() {
                 <Route
                   path="/service-motor-listrik"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
+                    <ProtectedRoute
+                      allowedRoles={["superadmin", "admin", "pic_toko"]}
+                    >
                       <ServiceMotorListrik user={user} />
                     </ProtectedRoute>
                   }

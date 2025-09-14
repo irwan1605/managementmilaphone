@@ -20,7 +20,7 @@ import {
   getMdr,
   getBateraiByBrandProduct,
   getChargerByBrandProduct,
-  getBungaByTenor, // <-- pastikan diexport dari ../data/ListDataPenjualan
+  getBungaByTenor, // pastikan diexport dari ../data/ListDataPenjualan
 } from "../data/ListDataPenjualan";
 
 /* ========== Helper stok untuk 3 kartu ringkas ========== */
@@ -29,7 +29,9 @@ import { getStockIndex } from "../data/StockBarang";
 /* ================= Utils ================= */
 const toNum = (v) => (isNaN(Number(v)) ? 0 : Number(v));
 const unique = (arr) =>
-  Array.from(new Set((arr || []).map((x) => (x ?? "").toString().trim()).filter(Boolean)));
+  Array.from(
+    new Set((arr || []).map((x) => (x ?? "").toString().trim()).filter(Boolean))
+  );
 
 function formatCurrency(n) {
   try {
@@ -47,7 +49,8 @@ function parseXlsxDate(v) {
   if (v instanceof Date) return v.toISOString().slice(0, 10);
   if (typeof v === "number" && XLSX.SSF?.parse_date_code) {
     const d = XLSX.SSF.parse_date_code(v);
-    if (d) return new Date(Date.UTC(d.y, d.m - 1, d.d)).toISOString().slice(0, 10);
+    if (d)
+      return new Date(Date.UTC(d.y, d.m - 1, d.d)).toISOString().slice(0, 10);
   }
   if (typeof v === "string" && v.trim()) return v;
   return new Date().toISOString().slice(0, 10);
@@ -56,11 +59,21 @@ function parseXlsxDate(v) {
 const formatDateTime = (d) => {
   try {
     const dt = new Date(d);
-    return `${dt.toLocaleDateString("id-ID")} ${dt.toLocaleTimeString("id-ID")}`;
+    return `${dt.toLocaleDateString("id-ID")} ${dt.toLocaleTimeString(
+      "id-ID"
+    )}`;
   } catch {
     return d || "-";
   }
 };
+
+// --- Normalisasi nama payment agar selalu valid terhadap PAYMENT_METHODS ---
+function normalizePayment(method) {
+  const s = String(method || "").trim();
+  if (!s) return PAYMENT_METHODS[0] || "Cash";
+  const hit = PAYMENT_METHODS.find((m) => m.toLowerCase() === s.toLowerCase());
+  return hit || PAYMENT_METHODS[0] || "Cash";
+}
 
 /* ============== Import normalizer ============== */
 function normalizeRowFromExcel(row) {
@@ -69,7 +82,12 @@ function normalizeRowFromExcel(row) {
   );
   const pick = (...keys) => {
     for (const k of keys) {
-      if (k in lower && lower[k] !== undefined && lower[k] !== null && `${lower[k]}`.trim() !== "")
+      if (
+        k in lower &&
+        lower[k] !== undefined &&
+        lower[k] !== null &&
+        `${lower[k]}`.trim() !== ""
+      )
         return lower[k];
     }
     return undefined;
@@ -81,8 +99,16 @@ function normalizeRowFromExcel(row) {
 
   const brand = pick("brand", "merk", "merek");
   const produk =
-    pick("sepeda listrik", "sepedalistrik", "type", "tipe", "produk", "product", "name", "nama") ||
-    "Produk";
+    pick(
+      "sepeda listrik",
+      "sepedalistrik",
+      "type",
+      "tipe",
+      "produk",
+      "product",
+      "name",
+      "nama"
+    ) || "Produk";
   const warna = pick("warna", "color");
   const qty = toNum(pick("qty", "jumlah", "kuantitas", "quantity"));
   const srp = toNum(pick("srp", "price", "harga srp"));
@@ -91,15 +117,20 @@ function normalizeRowFromExcel(row) {
     (pick("harga dipakai", "harga_pakai", "tipe harga", "price type") ||
       (grosir ? "GROSIR" : "SRP")) + "";
   const hargaType = /grosir/i.test(hargaTypeRaw) ? "GROSIR" : "SRP";
-  const harga = toNum(pick("harga", "amount", "payment user (dashboard)")) || (grosir || srp);
-  const kategori = pick("kategori", "category") || (brand ? "Motor Listrik" : "Lainnya");
+  const harga =
+    toNum(pick("harga", "amount", "payment user (dashboard)")) || grosir || srp;
+  const kategori =
+    pick("kategori", "category") || (brand ? "Motor Listrik" : "Lainnya");
 
   const baterai = pick("baterai", "battery") || "";
   const charger = pick("charger", "pengisi daya") || "";
 
-  const priceCategory = pick("kategori harga", "kategoriharga", "kat harga") || "";
-  const mpProtect = pick("mp proteck", "mp protect", "proteck", "protect") || "";
-  const paymentMethod = (pick("payment metode", "payment method", "pembayaran") || "") + "";
+  const priceCategory =
+    pick("kategori harga", "kategoriharga", "kat harga") || "";
+  const mpProtect =
+    pick("mp proteck", "mp protect", "proteck", "protect") || "";
+  const paymentMethod =
+    (pick("payment metode", "payment method", "pembayaran") || "") + "";
   const tenor = toNum(pick("tenor", "bulan"));
   const bunga = toNum(pick("bunga", "interest", "bunga%"));
 
@@ -113,28 +144,45 @@ function normalizeRowFromExcel(row) {
 
   const leasingName = pick("pembayaran melalui", "leasing") || "";
   const dp = toNum(pick("dp", "down payment"));
-  const dpMerchant = toNum(pick("dp user via merchant", "dp merchant (piutang)"));
+  const dpMerchant = toNum(
+    pick("dp user via merchant", "dp merchant (piutang)")
+  );
   const dpToko = toNum(pick("dp user ke toko", "dp toko (cash)"));
   const dpTalangan = toNum(pick("request dp talangan", "dp talangan"));
-  const imei1 = pick("imei/no dinamo/rangka", "imei", "serial", "no rangka") || "";
-  const imei2 = pick("imei/no dinamo/rangka 2", "imei2", "serial2", "no rangka 2") || "";
+  const imei1 =
+    pick("imei/no dinamo/rangka", "imei", "serial", "no rangka") || "";
+  const imei2 =
+    pick("imei/no dinamo/rangka 2", "imei2", "serial2", "no rangka 2") || "";
   const ongkirHsCard = toNum(pick("ongkir/hs card", "ongkir", "hs card"));
   const aksesoris1Desc = pick("aksesoris/sparepart", "aksesoris 1");
-  const aksesoris1Amount = toNum(pick("aksesoris/sparepart rp", "aksesoris 1 rp"));
+  const aksesoris1Amount = toNum(
+    pick("aksesoris/sparepart rp", "aksesoris 1 rp")
+  );
   const aksesoris2Desc = pick("aksesoris/sparepart 2");
   const aksesoris2Amount = toNum(pick("aksesoris/sparepart 2 rp"));
-  const bundlingProtectAmount = toNum(pick("bundling mp proteck", "bundling proteck"));
+  const bundlingProtectAmount = toNum(
+    pick("bundling mp proteck", "bundling proteck")
+  );
   const free1 = pick("free/kelengkapan unit", "kelengkapan 1");
   const free2 = pick("free/kelengkapan unit 2", "kelengkapan 2");
   const free3 = pick("free/kelengkapan unit 3", "kelengkapan 3");
 
   // tambahan identitas user/order
-  const akunPelanggan = pick("akun transaksi (pelanggan)", "akun pelanggan", "akun");
+  const akunPelanggan = pick(
+    "akun transaksi (pelanggan)",
+    "akun pelanggan",
+    "akun"
+  );
   const noHp = pick("no hp user / wa", "no hp", "whatsapp", "wa");
   const noKontrak = pick("no. kontrak/id order", "id order", "kontrak");
-  const salesHandleTitipan = pick("nama sales handle user titipan", "sales handle titipan");
+  const salesHandleTitipan = pick(
+    "nama sales handle user titipan",
+    "sales handle titipan"
+  );
   const note = pick("note/keterangan tambahan", "catatan");
-  const tglPengambilan = parseXlsxDate(pick("tgl pegambilan unit", "tgl pengambilan unit"));
+  const tglPengambilan = parseXlsxDate(
+    pick("tgl pegambilan unit", "tgl pengambilan unit")
+  );
   const alamatPengiriman = pick("alamat pengiriman", "alamat");
 
   return {
@@ -222,7 +270,10 @@ function computeFinancials(row, tokoName) {
     const cicilan = tenor > 0 ? (principal + totalBunga) / tenor : 0;
     const grandTotal = dp + principal + totalBunga;
     const sisaKembalian =
-      toNum(row.dpMerchant) + toNum(row.dpToko) + toNum(row.dpTalangan) - subtotal;
+      toNum(row.dpMerchant) +
+      toNum(row.dpToko) +
+      toNum(row.dpTalangan) -
+      subtotal;
 
     return {
       base,
@@ -243,7 +294,10 @@ function computeFinancials(row, tokoName) {
   }
 
   const sisaKembalian =
-    toNum(row.dpMerchant) + toNum(row.dpToko) + toNum(row.dpTalangan) - subtotal;
+    toNum(row.dpMerchant) +
+    toNum(row.dpToko) +
+    toNum(row.dpTalangan) -
+    subtotal;
 
   return {
     base,
@@ -266,7 +320,10 @@ function computeFinancials(row, tokoName) {
 /* ============== Komponen ============== */
 export default function DashboardToko({ user, tokoId, initialData = [] }) {
   const navigate = useNavigate();
-  const tokoName = useMemo(() => TOKO_LABELS[Number(tokoId)] || `Toko ${tokoId}`, [tokoId]);
+  const tokoName = useMemo(
+    () => TOKO_LABELS[Number(tokoId)] || `Toko ${tokoId}`,
+    [tokoId]
+  );
 
   // stok ringkas untuk 3 kartu
   const stockIdx = useMemo(() => getStockIndex(tokoName) || {}, [tokoName]);
@@ -276,14 +333,13 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
 
   // katalog/brand
   const brandIndex = useMemo(() => getBrandIndex(), []);
-  const brandOptions = useMemo(() => brandIndex.map((b) => b.brand), [brandIndex]);
+  const brandOptions = useMemo(
+    () => brandIndex.map((b) => b.brand),
+    [brandIndex]
+  );
 
   // sales options
   const salesOptions = useMemo(() => getSalesByToko(tokoName), [tokoName]);
-  const SH_LIST = useMemo(() => unique(salesOptions.map((s) => s.sh)), [salesOptions]);
-  const SL_LIST = useMemo(() => unique(salesOptions.map((s) => s.sl)), [salesOptions]);
-  const STORE_LIST = useMemo(() => unique(salesOptions.map((s) => s.store)), [salesOptions]);
-  const TUYUL_LIST = useMemo(() => unique(salesOptions.map((s) => s.tuyul)), [salesOptions]);
 
   /* ---------- Data tabel ---------- */
   const [rows, setRows] = useState(() =>
@@ -362,7 +418,13 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
         acc.totalNet += f.net;
         return acc;
       },
-      { totalTransaksi: 0, totalQty: 0, totalOmzet: 0, totalGrand: 0, totalNet: 0 }
+      {
+        totalTransaksi: 0,
+        totalQty: 0,
+        totalOmzet: 0,
+        totalGrand: 0,
+        totalNet: 0,
+      }
     );
   }, [rows, tokoName]);
 
@@ -371,14 +433,18 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
     for (const r of rows) {
       const key = r.paymentMethod || "Cash";
       const f = computeFinancials(r, tokoName);
-      if (!map.has(key)) map.set(key, { count: 0, subtotal: 0, grandTotal: 0, net: 0 });
+      if (!map.has(key))
+        map.set(key, { count: 0, subtotal: 0, grandTotal: 0, net: 0 });
       const m = map.get(key);
       m.count += 1;
       m.subtotal += f.subtotal;
       m.grandTotal += f.grandTotal;
       m.net += f.net;
     }
-    return Array.from(map.entries()).map(([method, val]) => ({ method, ...val }));
+    return Array.from(map.entries()).map(([method, val]) => ({
+      method,
+      ...val,
+    }));
   }, [rows, tokoName]);
 
   /* ---------- Form ---------- */
@@ -396,7 +462,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
     // Sales & organisasi
     salesName: "",
     shName: "",
-    tokoRef: TOKO_LIST?.includes(TOKO_LABELS[tokoId]) ? TOKO_LABELS[tokoId] : TOKO_LABELS[tokoId],
+    tokoRef: TOKO_LIST?.includes(TOKO_LABELS[tokoId])
+      ? TOKO_LABELS[tokoId]
+      : TOKO_LABELS[tokoId],
     slName: "",
     tuyulName: "",
     nik: "",
@@ -531,9 +599,22 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
   }, [form.tenor, form.paymentMethod, form.brand, tokoName]);
 
   const onChangeBrand = (val) =>
-    setForm((f) => ({ ...f, brand: val, produk: "", warna: "", baterai: "", charger: "" }));
+    setForm((f) => ({
+      ...f,
+      brand: val,
+      produk: "",
+      warna: "",
+      baterai: "",
+      charger: "",
+    }));
   const onChangeProduk = (val) =>
-    setForm((f) => ({ ...f, produk: val, warna: "", baterai: "", charger: "" }));
+    setForm((f) => ({
+      ...f,
+      produk: val,
+      warna: "",
+      baterai: "",
+      charger: "",
+    }));
 
   const addRow = () => {
     const newRow = {
@@ -589,7 +670,8 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
     try {
       const data = await file.arrayBuffer();
       const wb = XLSX.read(data, { type: "array" });
-      const sheetName = wb.SheetNames.find((n) => /list|po/i.test(n)) || wb.SheetNames[0];
+      const sheetName =
+        wb.SheetNames.find((n) => /list|po/i.test(n)) || wb.SheetNames[0];
       const ws = wb.Sheets[sheetName];
       const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
       const normalized = json.map(normalizeRowFromExcel);
@@ -605,7 +687,8 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
         hargaType: r.hargaType || (r.grosir ? "GROSIR" : "SRP"),
         paymentMethod:
           PAYMENT_METHODS.find(
-            (m) => m.toLowerCase() === String(r.paymentMethod || "").toLowerCase()
+            (m) =>
+              m.toLowerCase() === String(r.paymentMethod || "").toLowerCase()
           ) || "Cash",
         qty: toNum(r.qty),
         srp: toNum(r.srp),
@@ -660,7 +743,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
         DP_MERCHANT_PIUTANG: r.dpMerchant,
         DP_TOKO_CASH: r.dpToko,
         DP_TALANGAN: r.dpTalangan,
-        SISA_LIMIT_BARANG: Math.max(0, f.subtotal - (r.dpMerchant + r.dpToko + r.dpTalangan)),
+        SISA_LIMIT_BARANG: Math.max(
+          0,
+          f.subtotal - (r.dpMerchant + r.dpToko + r.dpTalangan)
+        ),
         TENOR_BULAN: r.tenor,
         BUNGA_PCT: r.bunga,
         CICILAN_PER_BULAN: Math.round(f.cicilan),
@@ -698,10 +784,90 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
   };
 
   const handleExportAll = () => exportRows(rows, "PO", "PO_ALL");
-  const srpRows = useMemo(() => rows.filter((r) => r.hargaType === "SRP"), [rows]);
-  const grosirRows = useMemo(() => rows.filter((r) => r.hargaType === "GROSIR"), [rows]);
+  const srpRows = useMemo(
+    () => rows.filter((r) => r.hargaType === "SRP"),
+    [rows]
+  );
+  const grosirRows = useMemo(
+    () => rows.filter((r) => r.hargaType === "GROSIR"),
+    [rows]
+  );
   const handleExportSRP = () => exportRows(srpRows, "SRP", "PENJUALAN_SRP");
-  const handleExportGrosir = () => exportRows(grosirRows, "GROSIR", "PENJUALAN_GROSIR");
+  const handleExportGrosir = () =>
+    exportRows(grosirRows, "GROSIR", "PENJUALAN_GROSIR");
+
+  // ============== Export Keuangan (sinkron ke FinanceReport import) ==============
+  const handleExportKeuangan = React.useCallback(() => {
+    // 1) Detail: map baris transaksi -> setoran
+    const detail = rows
+      .map((r) => {
+        const f = computeFinancials(r, tokoName);
+        const kategori = normalizePayment(r.paymentMethod);
+        const isKredit = kategori.toLowerCase() === "kredit";
+
+        // jumlah setoran yang benar-benar diterima
+        const jumlah = isKredit
+          ? toNum(r.dpMerchant) + toNum(r.dpToko) + toNum(r.dpTalangan)
+          : f.net;
+
+        const keterangan = [
+          r.brand,
+          r.produk,
+          r.warna ? `(${r.warna})` : "",
+          `x${toNum(r.qty) || 1}`,
+          r.hargaType ? `[${r.hargaType}]` : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+        const refNo = r.noKontrak || r.imei1 || r.imei2 || "";
+        const dibuatOleh = r.salesName || user?.username || user?.name || "";
+
+        return {
+          Tanggal: r.tanggal,
+          Toko: tokoName, // FinanceReport detect nama toko
+          Kategori: kategori, // harus cocok PAYMENT_METHODS
+          Jumlah: Math.round(jumlah),
+          Keterangan: keterangan,
+          "No. Referensi": refNo,
+          "Dibuat Oleh": dibuatOleh,
+        };
+      })
+      // buang baris nol/negatif agar bersih
+      .filter((x) => toNum(x.Jumlah) > 0);
+
+    // 2) Rekap: agregasi per Tanggal × Kategori
+    const rekapMap = new Map();
+    for (const d of detail) {
+      const key = `${d.Tanggal}||${d.Kategori}`;
+      rekapMap.set(key, (rekapMap.get(key) || 0) + toNum(d.Jumlah));
+    }
+    const rekap = Array.from(rekapMap.entries()).map(([key, total]) => {
+      const [Tanggal, Kategori] = key.split("||");
+      return {
+        Tanggal,
+        Toko: tokoName,
+        Kategori,
+        Total: Math.round(total),
+      };
+    });
+
+    if (detail.length === 0) {
+      alert("Tidak ada data setoran yang dapat diexport.");
+      return;
+    }
+
+    // 3) Tulis Excel
+    const wsDetail = XLSX.utils.json_to_sheet(detail);
+    const wsRekap = XLSX.utils.json_to_sheet(rekap);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, wsDetail, "Setoran"); // <- FinanceReport akan baca ini
+    XLSX.utils.book_append_sheet(wb, wsRekap, "Rekap");
+
+    const ymd = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const safeName = (tokoName || "").replace(/[^\p{L}\p{N}_-]+/gu, "_");
+    XLSX.writeFile(wb, `Setoran_${safeName}_${ymd}.xlsx`);
+  }, [rows, tokoName, user]);
 
   /* ============== Edit/Delete/Approve ============== */
   const [editingId, setEditingId] = useState(null);
@@ -715,7 +881,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
     setEditDraft(null);
   };
   const saveEdit = () => {
-    setRows((prev) => prev.map((r) => (r.id === editingId ? { ...editDraft } : r)));
+    setRows((prev) =>
+      prev.map((r) => (r.id === editingId ? { ...editDraft } : r))
+    );
     cancelEdit();
   };
   const deleteRow = (id) => {
@@ -730,16 +898,22 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
     const ts = new Date().toISOString();
     setRows((prev) =>
       prev.map((r) =>
-        r.id === id ? { ...r, approved: true, approvedBy: approver, approvedAt: ts } : r
+        r.id === id
+          ? { ...r, approved: true, approvedBy: approver, approvedAt: ts }
+          : r
       )
     );
   };
 
   /* ============== Derived untuk card Payment ============== */
-  const finPreview = useMemo(() => computeFinancials(form, tokoName), [form, tokoName]);
+  const finPreview = useMemo(
+    () => computeFinancials(form, tokoName),
+    [form, tokoName]
+  );
   const sisaLimitBarang = useMemo(() => {
     const need = finPreview.subtotal;
-    const paid = toNum(form.dpMerchant) + toNum(form.dpToko) + toNum(form.dpTalangan);
+    const paid =
+      toNum(form.dpMerchant) + toNum(form.dpToko) + toNum(form.dpTalangan);
     return Math.max(0, need - paid);
   }, [finPreview, form.dpMerchant, form.dpToko, form.dpTalangan]);
 
@@ -749,9 +923,12 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Dashboard Toko — {tokoName}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">
+            Dashboard Toko — {tokoName}
+          </h1>
           <p className="text-slate-600">
-            PO Penjualan, Payment, SRP/Kredit & Grosir. Dropdown & harga otomatis dari folder data.
+            PO Penjualan, Payment, SRP/Kredit & Grosir. Dropdown & harga
+            otomatis dari folder data.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -770,12 +947,22 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
           >
             Import Excel (.xlsx)
           </label>
+
           <button
             onClick={handleExportAll}
             className="rounded-lg border bg-white px-3 py-2 text-sm shadow-sm hover:bg-slate-50"
             title="Export semua (.xlsx)"
           >
             Export ALL
+          </button>
+
+          {/* === Tambahan baru: Export Keuangan sinkron FinanceReport === */}
+          <button
+            onClick={handleExportKeuangan}
+            className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 text-sm shadow-sm"
+            title="Export file setoran untuk laporan keuangan pusat"
+          >
+            Export Keuangan
           </button>
         </div>
       </div>
@@ -784,7 +971,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
           <div className="text-sm text-slate-500">Total Transaksi</div>
-          <div className="mt-1 text-2xl font-semibold">{totals.totalTransaksi}</div>
+          <div className="mt-1 text-2xl font-semibold">
+            {totals.totalTransaksi}
+          </div>
         </div>
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
           <div className="text-sm text-slate-500">Total Qty</div>
@@ -792,15 +981,21 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
         </div>
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
           <div className="text-sm text-slate-500">Subtotal</div>
-          <div className="mt-1 text-2xl font-semibold">{formatCurrency(totals.totalOmzet)}</div>
+          <div className="mt-1 text-2xl font-semibold">
+            {formatCurrency(totals.totalOmzet)}
+          </div>
         </div>
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
           <div className="text-sm text-slate-500">Grand Total</div>
-          <div className="mt-1 text-2xl font-semibold">{formatCurrency(totals.totalGrand)}</div>
+          <div className="mt-1 text-2xl font-semibold">
+            {formatCurrency(totals.totalGrand)}
+          </div>
         </div>
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
           <div className="text-sm text-slate-500">NET (setelah MDR)</div>
-          <div className="mt-1 text-2xl font-semibold">{formatCurrency(totals.totalNet)}</div>
+          <div className="mt-1 text-2xl font-semibold">
+            {formatCurrency(totals.totalNet)}
+          </div>
         </div>
       </div>
 
@@ -873,7 +1068,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
               <select
                 className="border rounded px-2 py-1"
                 value={form.salesName}
-                onChange={(e) => setForm({ ...form, salesName: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, salesName: e.target.value })
+                }
               >
                 <option value="">— Pilih Sales —</option>
                 {getSalesByToko(tokoName).map((s) => (
@@ -898,7 +1095,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
           </div>
 
           <div className="md:col-span-3">
-            <label className="text-xs text-slate-600">Nama Toko & Nama SL</label>
+            <label className="text-xs text-slate-600">
+              Nama Toko & Nama SL
+            </label>
             <div className="grid grid-cols-2 gap-2">
               <select
                 className="border rounded px-2 py-1"
@@ -932,7 +1131,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
           </div>
 
           <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">Nama Freelance/Teknisi</label>
+            <label className="text-xs text-slate-600">
+              Nama Freelance/Teknisi
+            </label>
             <select
               className="w-full border rounded px-2 py-1"
               value={form.tuyulName}
@@ -948,20 +1149,28 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
           </div>
 
           <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">Nama Sales handle user titipan</label>
+            <label className="text-xs text-slate-600">
+              Nama Sales handle user titipan
+            </label>
             <input
               className="w-full border rounded px-2 py-1"
               value={form.salesHandleTitipan}
-              onChange={(e) => setForm({ ...form, salesHandleTitipan: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, salesHandleTitipan: e.target.value })
+              }
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-600">Akun Transaksi (PELANGGAN)</label>
+            <label className="text-xs text-slate-600">
+              Akun Transaksi (PELANGGAN)
+            </label>
             <input
               className="w-full border rounded px-2 py-1"
               value={form.akunPelanggan}
-              onChange={(e) => setForm({ ...form, akunPelanggan: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, akunPelanggan: e.target.value })
+              }
             />
           </div>
 
@@ -975,7 +1184,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
           </div>
 
           <div>
-            <label className="text-xs text-slate-600">No. KONTRAK/ID ORDER</label>
+            <label className="text-xs text-slate-600">
+              No. KONTRAK/ID ORDER
+            </label>
             <input
               className="w-full border rounded px-2 py-1"
               value={form.noKontrak}
@@ -995,7 +1206,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
             <select
               className="w-full border rounded px-2 py-1"
               value={form.priceCategory}
-              onChange={(e) => setForm({ ...form, priceCategory: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, priceCategory: e.target.value })
+              }
             >
               <option value="">— Pilih —</option>
               {PRICE_CATEGORIES.map((c) => (
@@ -1012,17 +1225,23 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
               className="w-full border rounded px-2 py-1"
               placeholder="Nama Leasing/Bank"
               value={form.leasingName}
-              onChange={(e) => setForm({ ...form, leasingName: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, leasingName: e.target.value })
+              }
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">Payment user (DASHBOARD)</label>
+            <label className="text-xs text-slate-600">
+              Payment user (DASHBOARD)
+            </label>
             <div className="grid grid-cols-2 gap-2">
               <select
                 className="border rounded px-2 py-1"
                 value={form.paymentMethod}
-                onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, paymentMethod: e.target.value })
+                }
               >
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m} value={m}>
@@ -1035,19 +1254,27 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                 min={0}
                 className="border rounded px-2 py-1 text-right"
                 value={form.harga}
-                onChange={(e) => setForm({ ...form, harga: toNum(e.target.value) })}
+                onChange={(e) =>
+                  setForm({ ...form, harga: toNum(e.target.value) })
+                }
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs text-slate-600">MDR (Pot Marketplace)</label>
+            <label className="text-xs text-slate-600">
+              MDR (Pot Marketplace)
+            </label>
             <div className="grid grid-cols-2 gap-2">
               <input
                 readOnly
                 className="border rounded px-2 py-1 bg-slate-50 text-right"
                 value={Number(
-                  getMdr({ method: form.paymentMethod, toko: tokoName, brand: form.brand }) || 0
+                  getMdr({
+                    method: form.paymentMethod,
+                    toko: tokoName,
+                    brand: form.brand,
+                  }) || 0
                 ).toFixed(2)}
                 title="Persentase MDR otomatis"
               />
@@ -1065,7 +1292,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
             <select
               className="w-full border rounded px-2 py-1 text-right"
               value={form.tenor}
-              onChange={(e) => setForm({ ...form, tenor: toNum(e.target.value) })}
+              onChange={(e) =>
+                setForm({ ...form, tenor: toNum(e.target.value) })
+              }
             >
               <option value={0}>— Pilih —</option>
               {TENOR_OPTIONS.map((t) => (
@@ -1087,40 +1316,54 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
           </div>
 
           <div>
-            <label className="text-xs text-slate-600">Dp User via Merchant (PIUTANG)</label>
+            <label className="text-xs text-slate-600">
+              Dp User via Merchant (PIUTANG)
+            </label>
             <input
               type="number"
               min={0}
               className="w-full border rounded px-2 py-1 text-right"
               value={form.dpMerchant}
-              onChange={(e) => setForm({ ...form, dpMerchant: toNum(e.target.value) })}
+              onChange={(e) =>
+                setForm({ ...form, dpMerchant: toNum(e.target.value) })
+              }
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-600">DP User Ke Toko (CASH)</label>
+            <label className="text-xs text-slate-600">
+              DP User Ke Toko (CASH)
+            </label>
             <input
               type="number"
               min={0}
               className="w-full border rounded px-2 py-1 text-right"
               value={form.dpToko}
-              onChange={(e) => setForm({ ...form, dpToko: toNum(e.target.value) })}
+              onChange={(e) =>
+                setForm({ ...form, dpToko: toNum(e.target.value) })
+              }
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-600">Request DP Talangan</label>
+            <label className="text-xs text-slate-600">
+              Request DP Talangan
+            </label>
             <input
               type="number"
               min={0}
               className="w-full border rounded px-2 py-1 text-right"
               value={form.dpTalangan}
-              onChange={(e) => setForm({ ...form, dpTalangan: toNum(e.target.value) })}
+              onChange={(e) =>
+                setForm({ ...form, dpTalangan: toNum(e.target.value) })
+              }
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">Sisa Limit Untuk BARANG</label>
+            <label className="text-xs text-slate-600">
+              Sisa Limit Untuk BARANG
+            </label>
             <input
               readOnly
               className="w-full border rounded px-2 py-1 bg-slate-50 text-right"
@@ -1138,7 +1381,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
         {/* MOLIS utama */}
         <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4">
           <div>
-            <label className="text-xs text-slate-600">BANYAKNYA UNIT MOLIS</label>
+            <label className="text-xs text-slate-600">
+              BANYAKNYA UNIT MOLIS
+            </label>
             <input
               type="number"
               min={0}
@@ -1149,7 +1394,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
           </div>
 
           <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">TYPE UNIT SELIS MOLIS</label>
+            <label className="text-xs text-slate-600">
+              TYPE UNIT SELIS MOLIS
+            </label>
             <div className="grid grid-cols-2 gap-2">
               <select
                 className="border rounded px-2 py-1"
@@ -1257,7 +1504,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
               min={0}
               className="w-full border rounded px-2 py-1 text-right"
               value={form.grosir}
-              onChange={(e) => setForm({ ...form, grosir: toNum(e.target.value) })}
+              onChange={(e) =>
+                setForm({ ...form, grosir: toNum(e.target.value) })
+              }
             />
           </div>
 
@@ -1275,7 +1524,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
         {/* IMEI / Ongkir / Accessories / Bundling / Free */}
         <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4">
           <div className="md:col-span-3">
-            <label className="text-xs text-slate-600">IMEI/NO DINAMO/RANGKA</label>
+            <label className="text-xs text-slate-600">
+              IMEI/NO DINAMO/RANGKA
+            </label>
             <input
               className="w-full border rounded px-2 py-1"
               value={form.imei1}
@@ -1283,7 +1534,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
             />
           </div>
           <div className="md:col-span-3">
-            <label className="text-xs text-slate-600">IMEI/NO DINAMO/RANGKA</label>
+            <label className="text-xs text-slate-600">
+              IMEI/NO DINAMO/RANGKA
+            </label>
             <input
               className="w-full border rounded px-2 py-1"
               value={form.imei2}
@@ -1293,7 +1546,11 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
 
           <div>
             <label className="text-xs text-slate-600">BANYAKNYA ONGKIR</label>
-            <input readOnly className="w-full border rounded px-2 py-1 bg-slate-50" value="-" />
+            <input
+              readOnly
+              className="w-full border rounded px-2 py-1 bg-slate-50"
+              value="-"
+            />
           </div>
           <div>
             <label className="text-xs text-slate-600">ONGKIR/HS CARD</label>
@@ -1302,20 +1559,32 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
               min={0}
               className="w-full border rounded px-2 py-1 text-right"
               value={form.ongkirHsCard}
-              onChange={(e) => setForm({ ...form, ongkirHsCard: toNum(e.target.value) })}
+              onChange={(e) =>
+                setForm({ ...form, ongkirHsCard: toNum(e.target.value) })
+              }
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-600">BANYAKNYA AKSESORIS/SPAREPART</label>
-            <input readOnly className="w-full border rounded px-2 py-1 bg-slate-50" value="-" />
+            <label className="text-xs text-slate-600">
+              BANYAKNYA AKSESORIS/SPAREPART
+            </label>
+            <input
+              readOnly
+              className="w-full border rounded px-2 py-1 bg-slate-50"
+              value="-"
+            />
           </div>
           <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">AKSESORIS/SPAREPART</label>
+            <label className="text-xs text-slate-600">
+              AKSESORIS/SPAREPART
+            </label>
             <input
               className="w-full border rounded px-2 py-1"
               value={form.aksesoris1Desc}
-              onChange={(e) => setForm({ ...form, aksesoris1Desc: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, aksesoris1Desc: e.target.value })
+              }
             />
           </div>
           <div>
@@ -1325,20 +1594,32 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
               min={0}
               className="w-full border rounded px-2 py-1 text-right"
               value={form.aksesoris1Amount}
-              onChange={(e) => setForm({ ...form, aksesoris1Amount: toNum(e.target.value) })}
+              onChange={(e) =>
+                setForm({ ...form, aksesoris1Amount: toNum(e.target.value) })
+              }
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-600">BANYAKNYA AKSESORIS/SPAREPART</label>
-            <input readOnly className="w-full border rounded px-2 py-1 bg-slate-50" value="-" />
+            <label className="text-xs text-slate-600">
+              BANYAKNYA AKSESORIS/SPAREPART
+            </label>
+            <input
+              readOnly
+              className="w-full border rounded px-2 py-1 bg-slate-50"
+              value="-"
+            />
           </div>
           <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">AKSESORIS/SPAREPART</label>
+            <label className="text-xs text-slate-600">
+              AKSESORIS/SPAREPART
+            </label>
             <input
               className="w-full border rounded px-2 py-1"
               value={form.aksesoris2Desc}
-              onChange={(e) => setForm({ ...form, aksesoris2Desc: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, aksesoris2Desc: e.target.value })
+              }
             />
           </div>
           <div>
@@ -1348,13 +1629,21 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
               min={0}
               className="w-full border rounded px-2 py-1 text-right"
               value={form.aksesoris2Amount}
-              onChange={(e) => setForm({ ...form, aksesoris2Amount: toNum(e.target.value) })}
+              onChange={(e) =>
+                setForm({ ...form, aksesoris2Amount: toNum(e.target.value) })
+              }
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-600">BANYAKNYA BUNDLING MP PROTECK</label>
-            <input readOnly className="w-full border rounded px-2 py-1 bg-slate-50" value="-" />
+            <label className="text-xs text-slate-600">
+              BANYAKNYA BUNDLING MP PROTECK
+            </label>
+            <input
+              readOnly
+              className="w-full border rounded px-2 py-1 bg-slate-50"
+              value="-"
+            />
           </div>
           <div>
             <label className="text-xs text-slate-600">TOTAL HARGA</label>
@@ -1364,12 +1653,17 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
               className="w-full border rounded px-2 py-1 text-right"
               value={form.bundlingProtectAmount}
               onChange={(e) =>
-                setForm({ ...form, bundlingProtectAmount: toNum(e.target.value) })
+                setForm({
+                  ...form,
+                  bundlingProtectAmount: toNum(e.target.value),
+                })
               }
             />
           </div>
           <div className="md:col-span-4">
-            <label className="text-xs text-slate-600">BUNDLING MP PROTECK</label>
+            <label className="text-xs text-slate-600">
+              BUNDLING MP PROTECK
+            </label>
             <select
               className="w-full border rounded px-2 py-1"
               value={form.mpProtect}
@@ -1385,7 +1679,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
           </div>
 
           <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">FREE/KELENGKAPAN UNIT</label>
+            <label className="text-xs text-slate-600">
+              FREE/KELENGKAPAN UNIT
+            </label>
             <input
               className="w-full border rounded px-2 py-1"
               value={form.free1}
@@ -1394,11 +1690,17 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
           </div>
           <div>
             <label className="text-xs text-slate-600">BANYAKNYA</label>
-            <input readOnly className="w-full border rounded px-2 py-1 bg-slate-50" value="-" />
+            <input
+              readOnly
+              className="w-full border rounded px-2 py-1 bg-slate-50"
+              value="-"
+            />
           </div>
 
           <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">FREE/KELENGKAPAN UNIT</label>
+            <label className="text-xs text-slate-600">
+              FREE/KELENGKAPAN UNIT
+            </label>
             <input
               className="w-full border rounded px-2 py-1"
               value={form.free2}
@@ -1407,11 +1709,17 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
           </div>
           <div>
             <label className="text-xs text-slate-600">BANYAKNYA</label>
-            <input readOnly className="w-full border rounded px-2 py-1 bg-slate-50" value="-" />
+            <input
+              readOnly
+              className="w-full border rounded px-2 py-1 bg-slate-50"
+              value="-"
+            />
           </div>
 
           <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">FREE/KELENGKAPAN UNIT</label>
+            <label className="text-xs text-slate-600">
+              FREE/KELENGKAPAN UNIT
+            </label>
             <input
               className="w-full border rounded px-2 py-1"
               value={form.free3}
@@ -1420,7 +1728,11 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
           </div>
           <div>
             <label className="text-xs text-slate-600">BANYAKNYA</label>
-            <input readOnly className="w-full border rounded px-2 py-1 bg-slate-50" value="-" />
+            <input
+              readOnly
+              className="w-full border rounded px-2 py-1 bg-slate-50"
+              value="-"
+            />
           </div>
         </div>
 
@@ -1441,12 +1753,17 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
         {/* ringkas: gunakan data hargaType=GROSIR */}
         <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
           <div className="md:col-span-3">
-            <div className="text-sm text-slate-600">TOTAL BARANG SELIS MOLIS</div>
+            <div className="text-sm text-slate-600">
+              TOTAL BARANG SELIS MOLIS
+            </div>
             <div className="font-semibold">
               {formatCurrency(
                 rows
                   .filter((r) => r.hargaType === "GROSIR")
-                  .reduce((acc, r) => acc + computeFinancials(r, tokoName).subtotal, 0)
+                  .reduce(
+                    (acc, r) => acc + computeFinancials(r, tokoName).subtotal,
+                    0
+                  )
               )}
             </div>
           </div>
@@ -1454,7 +1771,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
             <div className="text-sm text-slate-600">TOTAL HARGA</div>
             <div className="font-semibold">
               {formatCurrency(
-                grosirRows.reduce((a, r) => a + computeFinancials(r, tokoName).subtotal, 0)
+                grosirRows.reduce(
+                  (a, r) => a + computeFinancials(r, tokoName).subtotal,
+                  0
+                )
               )}
             </div>
           </div>
@@ -1530,7 +1850,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                 if (isEditing && editDraft) {
                   const fe = computeFinancials(editDraft, tokoName);
                   return (
-                    <tr key={row.id} className="border-b last:border-0 bg-slate-50/50">
+                    <tr
+                      key={row.id}
+                      className="border-b last:border-0 bg-slate-50/50"
+                    >
                       {/* editable cells */}
                       <td className="px-3 py-2">
                         <input
@@ -1538,7 +1861,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1"
                           value={editDraft.tanggal}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, tanggal: e.target.value }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              tanggal: e.target.value,
+                            }))
                           }
                         />
                       </td>
@@ -1547,7 +1873,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1"
                           value={editDraft.brand}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, brand: e.target.value }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              brand: e.target.value,
+                            }))
                           }
                         />
                       </td>
@@ -1556,7 +1885,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1"
                           value={editDraft.produk}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, produk: e.target.value }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              produk: e.target.value,
+                            }))
                           }
                         />
                       </td>
@@ -1565,7 +1897,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1"
                           value={editDraft.warna}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, warna: e.target.value }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              warna: e.target.value,
+                            }))
                           }
                         />
                       </td>
@@ -1574,7 +1909,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1"
                           value={editDraft.baterai}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, baterai: e.target.value }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              baterai: e.target.value,
+                            }))
                           }
                         />
                       </td>
@@ -1583,7 +1921,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1"
                           value={editDraft.charger}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, charger: e.target.value }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              charger: e.target.value,
+                            }))
                           }
                         />
                       </td>
@@ -1593,7 +1934,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1 text-right w-24"
                           value={editDraft.qty}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, qty: toNum(e.target.value) }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              qty: toNum(e.target.value),
+                            }))
                           }
                         />
                       </td>
@@ -1602,7 +1946,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1"
                           value={editDraft.hargaType}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, hargaType: e.target.value }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              hargaType: e.target.value,
+                            }))
                           }
                         >
                           <option value="GROSIR">GROSIR</option>
@@ -1615,7 +1962,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1 text-right w-28"
                           value={editDraft.harga}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, harga: toNum(e.target.value) }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              harga: toNum(e.target.value),
+                            }))
                           }
                         />
                       </td>
@@ -1627,15 +1977,24 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                             toNum(editDraft.bundlingProtectAmount)
                         )}
                       </td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(fe.subtotal)}</td>
-                      <td className="px-3 py-2 text-right">{Number(fe.mdrPct).toFixed(2)}</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(fe.net)}</td>
+                      <td className="px-3 py-2 text-right">
+                        {formatCurrency(fe.subtotal)}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {Number(fe.mdrPct).toFixed(2)}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {formatCurrency(fe.net)}
+                      </td>
                       <td className="px-3 py-2">
                         <select
                           className="border rounded px-2 py-1"
                           value={editDraft.paymentMethod}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, paymentMethod: e.target.value }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              paymentMethod: e.target.value,
+                            }))
                           }
                         >
                           {PAYMENT_METHODS.map((m) => (
@@ -1650,7 +2009,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1"
                           value={editDraft.leasingName}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, leasingName: e.target.value }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              leasingName: e.target.value,
+                            }))
                           }
                         />
                       </td>
@@ -1660,7 +2022,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1 text-right w-24"
                           value={editDraft.dpMerchant}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, dpMerchant: toNum(e.target.value) }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              dpMerchant: toNum(e.target.value),
+                            }))
                           }
                         />
                       </td>
@@ -1670,7 +2035,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1 text-right w-24"
                           value={editDraft.dpToko}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, dpToko: toNum(e.target.value) }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              dpToko: toNum(e.target.value),
+                            }))
                           }
                         />
                       </td>
@@ -1680,7 +2048,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1 text-right w-24"
                           value={editDraft.dpTalangan}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, dpTalangan: toNum(e.target.value) }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              dpTalangan: toNum(e.target.value),
+                            }))
                           }
                         />
                       </td>
@@ -1691,7 +2062,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1 text-right w-20"
                           value={editDraft.tenor}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, tenor: toNum(e.target.value) }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              tenor: toNum(e.target.value),
+                            }))
                           }
                         />
                       </td>
@@ -1701,19 +2075,29 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1 text-right w-20"
                           value={editDraft.bunga}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, bunga: toNum(e.target.value) }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              bunga: toNum(e.target.value),
+                            }))
                           }
                         />
                       </td>
 
-                      <td className="px-3 py-2 text-right">{formatCurrency(fe.cicilan)}</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(fe.grandTotal)}</td>
+                      <td className="px-3 py-2 text-right">
+                        {formatCurrency(fe.cicilan)}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {formatCurrency(fe.grandTotal)}
+                      </td>
                       <td className="px-3 py-2">
                         <input
                           className="border rounded px-2 py-1 w-36"
                           value={editDraft.salesName}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, salesName: e.target.value }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              salesName: e.target.value,
+                            }))
                           }
                         />
                       </td>
@@ -1721,7 +2105,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                         <input
                           className="border rounded px-2 py-1 w-28"
                           value={editDraft.nik}
-                          onChange={(e) => setEditDraft((d) => ({ ...d, nik: e.target.value }))}
+                          onChange={(e) =>
+                            setEditDraft((d) => ({ ...d, nik: e.target.value }))
+                          }
                         />
                       </td>
                       <td className="px-3 py-2">
@@ -1729,7 +2115,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1 w-36"
                           value={editDraft.tokoRef}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, tokoRef: e.target.value }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              tokoRef: e.target.value,
+                            }))
                           }
                         />
                       </td>
@@ -1738,7 +2127,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1 w-36"
                           value={editDraft.storeName}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, storeName: e.target.value }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              storeName: e.target.value,
+                            }))
                           }
                         />
                       </td>
@@ -1747,7 +2139,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1 w-32"
                           value={editDraft.shName}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, shName: e.target.value }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              shName: e.target.value,
+                            }))
                           }
                         />
                       </td>
@@ -1756,7 +2151,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1 w-32"
                           value={editDraft.slName}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, slName: e.target.value }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              slName: e.target.value,
+                            }))
                           }
                         />
                       </td>
@@ -1765,7 +2163,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1 w-36"
                           value={editDraft.tuyulName}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, tuyulName: e.target.value }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              tuyulName: e.target.value,
+                            }))
                           }
                         />
                       </td>
@@ -1774,7 +2175,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1"
                           value={editDraft.noKontrak}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, noKontrak: e.target.value }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              noKontrak: e.target.value,
+                            }))
                           }
                         />
                       </td>
@@ -1783,7 +2187,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                           className="border rounded px-2 py-1"
                           value={editDraft.akunPelanggan}
                           onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, akunPelanggan: e.target.value }))
+                            setEditDraft((d) => ({
+                              ...d,
+                              akunPelanggan: e.target.value,
+                            }))
                           }
                         />
                       </td>
@@ -1791,7 +2198,12 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                         <input
                           className="border rounded px-2 py-1"
                           value={editDraft.noHp}
-                          onChange={(e) => setEditDraft((d) => ({ ...d, noHp: e.target.value }))}
+                          onChange={(e) =>
+                            setEditDraft((d) => ({
+                              ...d,
+                              noHp: e.target.value,
+                            }))
+                          }
                         />
                       </td>
                       <td className="px-3 py-2">
@@ -1801,9 +2213,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                       </td>
                       <td className="px-3 py-2 text-xs text-slate-600">
                         {editDraft.approved
-                          ? `By ${editDraft.approvedBy || "-"} @ ${formatDateTime(
-                              editDraft.approvedAt
-                            )}`
+                          ? `By ${
+                              editDraft.approvedBy || "-"
+                            } @ ${formatDateTime(editDraft.approvedAt)}`
                           : "-"}
                       </td>
                       <td className="px-3 py-2">
@@ -1836,7 +2248,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                     <td className="px-3 py-2">{row.charger || "-"}</td>
                     <td className="px-3 py-2 text-right">{row.qty}</td>
                     <td className="px-3 py-2">{row.hargaType}</td>
-                    <td className="px-3 py-2 text-right">{formatCurrency(row.harga)}</td>
+                    <td className="px-3 py-2 text-right">
+                      {formatCurrency(row.harga)}
+                    </td>
                     <td className="px-3 py-2 text-right">
                       {formatCurrency(
                         toNum(row.ongkirHsCard) +
@@ -1846,26 +2260,34 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                       )}
                     </td>
                     <td className="px-3 py-2 text-right">
-                      {formatCurrency(computeFinancials(row, tokoName).subtotal)}
+                      {formatCurrency(f.subtotal)}
                     </td>
                     <td className="px-3 py-2 text-right">
-                      {Number(computeFinancials(row, tokoName).mdrPct).toFixed(2)}
+                      {Number(f.mdrPct).toFixed(2)}
                     </td>
                     <td className="px-3 py-2 text-right">
-                      {formatCurrency(computeFinancials(row, tokoName).net)}
+                      {formatCurrency(f.net)}
                     </td>
                     <td className="px-3 py-2">{row.paymentMethod}</td>
                     <td className="px-3 py-2">{row.leasingName || "-"}</td>
-                    <td className="px-3 py-2 text-right">{formatCurrency(row.dpMerchant)}</td>
-                    <td className="px-3 py-2 text-right">{formatCurrency(row.dpToko)}</td>
-                    <td className="px-3 py-2 text-right">{formatCurrency(row.dpTalangan)}</td>
-                    <td className="px-3 py-2 text-right">{row.tenor || 0}</td>
-                    <td className="px-3 py-2 text-right">{toNum(row.bunga).toFixed(2)}</td>
                     <td className="px-3 py-2 text-right">
-                      {formatCurrency(computeFinancials(row, tokoName).cicilan)}
+                      {formatCurrency(row.dpMerchant)}
                     </td>
                     <td className="px-3 py-2 text-right">
-                      {formatCurrency(computeFinancials(row, tokoName).grandTotal)}
+                      {formatCurrency(row.dpToko)}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {formatCurrency(row.dpTalangan)}
+                    </td>
+                    <td className="px-3 py-2 text-right">{row.tenor || 0}</td>
+                    <td className="px-3 py-2 text-right">
+                      {toNum(row.bunga).toFixed(2)}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {formatCurrency(f.cicilan)}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {formatCurrency(f.grandTotal)}
                     </td>
                     <td className="px-3 py-2">{row.salesName || "-"}</td>
                     <td className="px-3 py-2">{row.nik || "-"}</td>
@@ -1890,7 +2312,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
                     </td>
                     <td className="px-3 py-2 text-xs text-slate-600">
                       {row.approved
-                        ? `By ${row.approvedBy || "-"} @ ${formatDateTime(row.approvedAt)}`
+                        ? `By ${row.approvedBy || "-"} @ ${formatDateTime(
+                            row.approvedAt
+                          )}`
                         : "-"}
                     </td>
                     <td className="px-3 py-2">
@@ -1922,7 +2346,10 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={35} className="px-3 py-6 text-center text-slate-500">
+                  <td
+                    colSpan={35}
+                    className="px-3 py-6 text-center text-slate-500"
+                  >
                     Belum ada data transaksi untuk {tokoName}.
                   </td>
                 </tr>
@@ -1934,7 +2361,9 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
         {/* Catatan & pengiriman */}
         <div className="mt-4 grid grid-cols-1 md:grid-cols-6 gap-3">
           <div className="md:col-span-3">
-            <label className="text-xs text-slate-600">Note/keterangan tambahan</label>
+            <label className="text-xs text-slate-600">
+              Note/keterangan tambahan
+            </label>
             <input
               className="w-full border rounded px-2 py-1"
               value={form.note}
@@ -1942,12 +2371,16 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
             />
           </div>
           <div>
-            <label className="text-xs text-slate-600">TGL PENGAMBILAN UNIT</label>
+            <label className="text-xs text-slate-600">
+              TGL PENGAMBILAN UNIT
+            </label>
             <input
               type="date"
               className="w-full border rounded px-2 py-1"
               value={form.tglPengambilan}
-              onChange={(e) => setForm({ ...form, tglPengambilan: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, tglPengambilan: e.target.value })
+              }
             />
           </div>
           <div className="md:col-span-2">
@@ -1955,16 +2388,19 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
             <input
               className="w-full border rounded px-2 py-1"
               value={form.alamatPengiriman}
-              onChange={(e) => setForm({ ...form, alamatPengiriman: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, alamatPengiriman: e.target.value })
+              }
             />
           </div>
         </div>
       </div>
 
       <p className="text-xs text-slate-500">
-        Semua dropdown/rumus mengikuti file di folder <code>data</code>. MDR% & nominal otomatis,
-        Bunga% terisi otomatis saat memilih tenor (helper <code>getBungaByTenor</code>). “Sisa Limit
-        Untuk BARANG” = Subtotal − (DP Merchant + DP Toko + DP Talangan).
+        Semua dropdown/rumus mengikuti file di folder <code>data</code>. MDR% &
+        nominal otomatis, Bunga% terisi otomatis saat memilih tenor (helper{" "}
+        <code>getBungaByTenor</code>). “Sisa Limit Untuk BARANG” = Subtotal −
+        (DP Merchant + DP Toko + DP Talangan).
       </p>
     </div>
   );

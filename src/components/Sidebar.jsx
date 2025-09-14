@@ -61,14 +61,14 @@ const Sidebar = ({ role, toko, onLogout }) => {
 
   return (
     <div className="bg-blue-700 w-64 h-screen text-white overflow-y-auto">
-      <img src="/logoMMT.jpg" alt="Logo" className="logo mb-4" />
+      <img src="/logoMMT.jpg" alt="Logo" className="logo mb-1" />
       <div className="font-bold p-2">
         <h2 className="text-gray-200 text-center text-sm">
           PT. MILA MEDIA TELEKOMUNIKASI
         </h2>
       </div>
 
-      <nav className="mt-6 font-bold">
+      <nav className="mt-2 font-bold">
         {/* ====== MODE SUPERADMIN ====== */}
         {isSuperLike ? (
           <>
@@ -306,11 +306,19 @@ const Sidebar = ({ role, toko, onLogout }) => {
 
             {/* KEUANGAN */}
             <Link
-              to="/keuangan"
+              to="/Finance-report"
               className="flex items-center p-3 hover:bg-blue-500"
             >
               <FaMoneyCheckAlt className="text-xl" />
               <span className="ml-2">KEUANGAN</span>
+            </Link>
+
+            <Link
+              to="/Finance-report-monthly"
+              className="flex items-center p-3 hover:bg-blue-500"
+            >
+              <FaMoneyCheckAlt className="text-xl" />
+              <span className="ml-2">REKAP KEUANGAN</span>
             </Link>
 
             {/* USER MANAGEMENT */}
