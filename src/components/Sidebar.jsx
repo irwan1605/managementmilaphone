@@ -28,7 +28,7 @@ import TOKO_LABELS, { ALL_TOKO_IDS } from "../data/TokoLabels";
 
 const Sidebar = ({ role, toko, onLogout }) => {
   // ===== Role helpers =====
-  const isSuperAdmin = role === "superadmin";
+  const isSuperLike = role === "superadmin" || role === "admin"; // admin diperlakukan sama dgn super
   const picMatch = /^pic_toko(\d+)$/i.exec(role || "");
   const picTokoId = picMatch ? Number(picMatch[1]) : toko ? Number(toko) : null;
 
@@ -39,13 +39,13 @@ const Sidebar = ({ role, toko, onLogout }) => {
   const [showSubMenuPembelian, setShowSubMenuPembelian] = useState(false);
   const [showSubMenuStock, setShowSubMenuStock] = useState(false);
   const [showSubMenuStruk, setShowSubMenuStruk] = useState(false);
-  // PIC: submenu Dashboard Toko terbuka default; SA: tertutup default
+  // PIC: submenu Dashboard Toko terbuka default; SA/ADMIN: tertutup default
   const [showSubMenuDashboardToko, setShowSubMenuDashboardToko] = useState(
-    !isSuperAdmin
+    !isSuperLike
   );
 
   // ===== Daftar toko yang ditampilkan =====
-  const visibleTokoIds = isSuperAdmin
+  const visibleTokoIds = isSuperLike
     ? ALL_TOKO_IDS
     : picTokoId
     ? [picTokoId]
@@ -70,7 +70,7 @@ const Sidebar = ({ role, toko, onLogout }) => {
 
       <nav className="mt-6 font-bold">
         {/* ====== MODE SUPERADMIN ====== */}
-        {isSuperAdmin ? (
+        {isSuperLike ? (
           <>
             {/* DASHBOARD PUSAT */}
             <Link
@@ -413,56 +413,6 @@ const Sidebar = ({ role, toko, onLogout }) => {
               </ul>
             )}
 
-            {/* PENJUALAN */}
-            <button
-              onClick={() => setShowSubMenuPenjualan(!showSubMenuPenjualan)}
-              className="w-full flex items-center p-3 hover:bg-blue-500 text-left"
-            >
-              <FaShoppingCart className="text-xl" />
-              <span className="ml-2">PENJUALAN</span>
-            </button>
-            {showSubMenuPenjualan && (
-              <ul className="pl-6">
-                <li>
-                  <Link
-                    to="/input-penjualan"
-                    className="flex items-center p-2 hover:bg-blue-500"
-                  >
-                    <FaClipboardList className="text-lg" />
-                    <span className="ml-2">Input Penjualan</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/penjualan-handphone"
-                    className="flex items-center p-2 hover:bg-blue-500"
-                  >
-                    <FaMobileAlt className="text-lg" />
-                    <span className="ml-2">Handphone</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/penjualan-motor-listrik"
-                    className="flex items-center p-2 hover:bg-blue-500"
-                  >
-                    <FaMotorcycle className="text-lg" />
-                    <span className="ml-2">Motor Listrik</span>
-                  </Link>
-                </li>
-                {/* Jika sudah punya halaman khusus: ganti ke "/penjualan-accessories" */}
-                <li>
-                  <Link
-                    to="/accessories"
-                    className="flex items-center p-2 hover:bg-blue-500"
-                  >
-                    <FaToolbox className="text-lg" />
-                    <span className="ml-2">Accessories</span>
-                  </Link>
-                </li>
-              </ul>
-            )}
-
             {/* SERVICE */}
             <button
               onClick={() => setShowSubMenuService(!showSubMenuService)}
@@ -494,45 +444,6 @@ const Sidebar = ({ role, toko, onLogout }) => {
               </ul>
             )}
 
-            {/* PRODUK & STOCK */}
-            <button
-              onClick={() => setShowSubMenuStock(!showSubMenuStock)}
-              className="w-full flex items-center p-3 hover:bg-blue-500 text-left"
-            >
-              <FiBox className="text-xl" />
-              <span className="ml-2">PRODUK DAN STOCK</span>
-            </button>
-            {showSubMenuStock && (
-              <ul className="pl-6">
-                <li>
-                  <Link
-                    to="/stock-handphone"
-                    className="flex items-center p-2 hover:bg-blue-500"
-                  >
-                    <FaMobileAlt className="text-lg" />
-                    <span className="ml-2">Handphone</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/stock-motor-listrik"
-                    className="flex items-center p-2 hover:bg-blue-500"
-                  >
-                    <FaMotorcycle className="text-lg" />
-                    <span className="ml-2">Motor Listrik</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/stock-accessories"
-                    className="flex items-center p-2 hover:bg-blue-500"
-                  >
-                    <FaToolbox className="text-lg" />
-                    <span className="ml-2">Accessories</span>
-                  </Link>
-                </li>
-              </ul>
-            )}
 
             {/* CETAK FAKTUR */}
             <button

@@ -382,7 +382,7 @@ export default function App() {
                   path="/penjualan-handphone"
                   element={
                     <ProtectedRoute
-                      allowedRoles={["superadmin", "admin", "pic_toko"]}
+                      allowedRoles={["superadmin", "admin"]}
                     >
                       <PenjualanHandphone />
                     </ProtectedRoute>
@@ -392,7 +392,7 @@ export default function App() {
                   path="/penjualan-motor-listrik"
                   element={
                     <ProtectedRoute
-                      allowedRoles={["superadmin", "admin", "pic_toko"]}
+                      allowedRoles={["superadmin", "admin"]}
                     >
                       <PenjualanMotorListrik />
                     </ProtectedRoute>
@@ -402,7 +402,7 @@ export default function App() {
                   path="/input-penjualan"
                   element={
                     <ProtectedRoute
-                      allowedRoles={["superadmin", "admin", "pic_toko"]}
+                      allowedRoles={["superadmin", "admin"]}
                     >
                       <InputPenjualan />
                     </ProtectedRoute>
@@ -412,7 +412,7 @@ export default function App() {
                   path="/accessories"
                   element={
                     <ProtectedRoute
-                      allowedRoles={["superadmin", "admin", "pic_toko"]}
+                      allowedRoles={["superadmin", "admin"]}
                     >
                       <PenjualanAccessories />
                     </ProtectedRoute>
@@ -440,7 +440,7 @@ export default function App() {
                 <Route
                   path="/stock-handphone-pusat"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
+                    <ProtectedRoute allowedRoles={["superadmin"]}>
                       <StockHandphonePusat user={user} />
                     </ProtectedRoute>
                   }
@@ -449,7 +449,7 @@ export default function App() {
                 <Route
                   path="/stock-accessories-pusat"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
+                    <ProtectedRoute allowedRoles={["superadmin"]}>
                       <StockAccessoriesPusat user={user} />
                     </ProtectedRoute>
                   }
@@ -458,7 +458,7 @@ export default function App() {
                 <Route
                   path="/stock-motor-listrik-pusat"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
+                    <ProtectedRoute allowedRoles={["superadmin"]}>
                       <StockMotorListrikPusat user={user} />
                     </ProtectedRoute>
                   }
