@@ -182,19 +182,19 @@ export default function Dashboard({ user }) {
       title: `Stok Handphone : ${totalHP} unit`,
       color: "bg-blue-600",
       description: "Lihat stok & mutasi handphone (pusat)",
-      route: "/stock-handphone",
+      route: "/stock-handphone-pusat",
     },
     {
       title: `Stok Motor Listrik : ${totalMolis} unit`,
       color: "bg-emerald-600",
       description: "Lihat stok & mutasi motor listrik (pusat)",
-      route: "/stock-motor-listrik",
+      route: "/stock-motor-listrik-pusat",
     },
     {
       title: `Stok Accessories : ${totalAcc} item`,
       color: "bg-amber-500",
       description: "Lihat stok & mutasi accessories (pusat)",
-      route: "/stock-accessories",
+      route: "/stock-accessories-pusat",
     },
     {
       title: `Varian Katalog : ${totalVarianKatalog} tipe`,

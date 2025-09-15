@@ -115,7 +115,7 @@ export default function App() {
   const TokoGuard = ({ id }) => {
     const tokoId = Number(id);
 
-    if (user?.role === "superadmin" || user?.role === "admin") {
+    if (user?.role === "superadmin" || user?.role === "pic_toko") {
       return (
         <DashboardToko
           user={user}
