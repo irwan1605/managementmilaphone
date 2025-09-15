@@ -362,7 +362,7 @@ export default function App() {
                 <Route
                   path="/surat-jalan"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <SuratJalan />
                     </ProtectedRoute>
                   }
@@ -370,7 +370,7 @@ export default function App() {
                 <Route
                   path="/invoice"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <Invoice />
                     </ProtectedRoute>
                   }
