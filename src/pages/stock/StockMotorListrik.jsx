@@ -2,14 +2,21 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
+
 import TOKO_LABELS from "../../data/TokoLabels";
 import { getStockIndex } from "../../data/StockBarang";
-import { transferStock, CENTRAL_NAME, onStockChange } from "../../data/StockTransfer";
+import {
+  transferStock,
+  CENTRAL_NAME,
+  onStockChange,
+} from "../../data/StockTransfer";
+import { writeStockCounters } from "../../data/StockCounters";
 
 const LOCAL_KEY = "MMT_STOCK_MOLIS_LOCAL_V1";
 
 const toNum = (v) => (isNaN(Number(v)) ? 0 : Number(v));
 const today = () => new Date().toISOString().slice(0, 10);
+
 function getCurrentUser() {
   try {
     return JSON.parse(localStorage.getItem("user")) || null;
@@ -17,10 +24,17 @@ function getCurrentUser() {
     return null;
   }
 }
+
 const makeKey = (row) => {
-  const no = (row.noDinamo || row.no_dinamo || "").toString().trim().toLowerCase();
-  const nama = (row.namaBarang || row.nama || "").toString().trim().toLowerCase();
-  return no || nama;
+  const imei = (row.imei || row.noRangka || row.serial || "")
+    .toString()
+    .trim()
+    .toLowerCase();
+  const nama = (row.namaBarang || row.nama || row.name || "")
+    .toString()
+    .trim()
+    .toLowerCase();
+  return imei || nama;
 };
 
 function readLocalMap() {
@@ -40,22 +54,25 @@ function writeLocalMap(map) {
 function mergeRowsForToko(tokoName) {
   const idx = getStockIndex(tokoName) || {};
   const base = Array.isArray(idx.motor_listrik) ? idx.motor_listrik : [];
+
   const map = readLocalMap();
   const localArr = Array.isArray(map[tokoName]) ? map[tokoName] : [];
 
   const baseMap = new Map();
+
   for (const r of base) {
     baseMap.set(makeKey(r), {
       source: "base",
       tanggal: r.tanggal ? String(r.tanggal).slice(0, 10) : "",
       tokoName,
-      namaBarang: r.namaBarang || r.nama || r.name || r.product || "",
-      noDinamo: (r.noDinamo || r.no_dinamo || r.serial || "").toString(),
+      namaBarang: r.namaBarang || r.nama || r.name || "",
+      imei: (r.imei || r.noRangka || r.serial || "").toString(),
       stokSistem: toNum(r.stokSistem ?? r.stok_sistem ?? r.stok ?? 0),
       stokFisik: toNum(r.stokFisik ?? r.stok_fisik ?? 0),
       keterangan: r.keterangan || r.note || "",
     });
   }
+
   for (const r of localArr) {
     const k = makeKey(r);
     baseMap.set(k, {
@@ -63,7 +80,7 @@ function mergeRowsForToko(tokoName) {
       tanggal: r.tanggal ? String(r.tanggal).slice(0, 10) : today(),
       tokoName,
       namaBarang: r.namaBarang || "",
-      noDinamo: (r.noDinamo || r.no_dinamo || "").toString(),
+      imei: (r.imei || r.noRangka || "").toString(),
       stokSistem: toNum(r.stokSistem),
       stokFisik: toNum(r.stokFisik),
       keterangan: r.keterangan || "",
@@ -93,17 +110,26 @@ export default function StockMotorListrik() {
   const [form, setForm] = useState({
     tanggal: today(),
     namaBarang: "",
-    noDinamo: "",
+    imei: "",
     stokSistem: 0,
     stokFisik: 0,
     keterangan: "",
   });
   const [editingId, setEditingId] = useState(null);
 
+  // auto refresh saat ada perubahan dari modul transfer
   useEffect(() => {
     const unsub = onStockChange(() => setRows(mergeRowsForToko(tokoName)));
     return unsub;
   }, [tokoName]);
+
+  // tulis counter ke global (dibaca Dashboard)
+  useEffect(() => {
+    const totalFisik = rows.reduce((a, r) => a + toNum(r.stokFisik), 0);
+    try {
+      writeStockCounters(tokoName, { motor_listrik: totalFisik });
+    } catch {}
+  }, [tokoName, rows]);
 
   const filtered = useMemo(() => {
     if (!filter.trim()) return rows;
@@ -111,7 +137,7 @@ export default function StockMotorListrik() {
     return rows.filter(
       (r) =>
         (r.namaBarang || "").toLowerCase().includes(q) ||
-        (r.noDinamo || "").toLowerCase().includes(q) ||
+        (r.imei || "").toLowerCase().includes(q) ||
         (r.keterangan || "").toLowerCase().includes(q)
     );
   }, [rows, filter]);
@@ -133,6 +159,7 @@ export default function StockMotorListrik() {
   function reload() {
     setRows(mergeRowsForToko(tokoName));
   }
+
   function upsertLocalRow(row) {
     const map = readLocalMap();
     const arr = Array.isArray(map[tokoName]) ? [...map[tokoName]] : [];
@@ -141,7 +168,7 @@ export default function StockMotorListrik() {
     without.push({
       tanggal: row.tanggal || today(),
       namaBarang: row.namaBarang || "",
-      noDinamo: (row.noDinamo || "").toString(),
+      imei: (row.imei || "").toString(),
       stokSistem: toNum(row.stokSistem),
       stokFisik: toNum(row.stokFisik),
       keterangan: row.keterangan || "",
@@ -150,6 +177,7 @@ export default function StockMotorListrik() {
     writeLocalMap(map);
     reload();
   }
+
   function removeLocalRow(row) {
     const map = readLocalMap();
     const arr = Array.isArray(map[tokoName]) ? [...map[tokoName]] : [];
@@ -168,6 +196,7 @@ export default function StockMotorListrik() {
     setNote("");
     setOpen(true);
   }
+
   async function doReturn() {
     if (!targetRow) return;
     try {
@@ -175,7 +204,7 @@ export default function StockMotorListrik() {
         from: tokoName,
         to: CENTRAL_NAME,
         category: "motor_listrik",
-        keyFields: { noDinamo: targetRow.noDinamo, namaBarang: targetRow.namaBarang },
+        keyFields: { imei: targetRow.imei, namaBarang: targetRow.namaBarang },
         qty: toNum(qty),
         mode,
         syncSystem,
@@ -194,7 +223,7 @@ export default function StockMotorListrik() {
       TANGGAL: r.tanggal || "",
       LOKASI: tokoName,
       NAMA_BARANG: r.namaBarang,
-      NO_DINAMO: r.noDinamo || "",
+      IMEI_SERIAL: r.imei || "",
       STOK_SISTEM: r.stokSistem,
       STOK_FISIK: r.stokFisik,
       KETERANGAN: r.keterangan || "",
@@ -213,7 +242,7 @@ export default function StockMotorListrik() {
     setForm({
       tanggal: row.tanggal || today(),
       namaBarang: row.namaBarang || "",
-      noDinamo: row.noDinamo || "",
+      imei: row.imei || "",
       stokSistem: toNum(row.stokSistem),
       stokFisik: toNum(row.stokFisik),
       keterangan: row.keterangan || "",
@@ -224,7 +253,7 @@ export default function StockMotorListrik() {
     setForm({
       tanggal: today(),
       namaBarang: "",
-      noDinamo: "",
+      imei: "",
       stokSistem: 0,
       stokFisik: 0,
       keterangan: "",
@@ -235,8 +264,8 @@ export default function StockMotorListrik() {
     cancelEdit();
   }
   function addNew() {
-    if (!form.namaBarang && !form.noDinamo) {
-      alert("Isi minimal Nama Barang atau No Dinamo");
+    if (!form.namaBarang && !form.imei) {
+      alert("Isi minimal Nama Barang atau IMEI/Serial");
       return;
     }
     upsertLocalRow(form);
@@ -247,8 +276,9 @@ export default function StockMotorListrik() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Stok Motor Listrik — {tokoName}</h1>
-          <p className="text-slate-600 text-sm">Auto update saat PUSAT kirim/terima.</p>
+          <h1 className="text-2xl font-bold">
+            Stok Motor Listrik — {tokoName}
+          </h1>
         </div>
         <div className="flex gap-2">
           <button
@@ -258,7 +288,7 @@ export default function StockMotorListrik() {
             Kembali
           </button>
           <input
-            placeholder="Cari nama/No Dinamo/keterangan…"
+            placeholder="Cari nama/IMEI/keterangan…"
             className="border rounded px-3 py-2 w-56"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -300,7 +330,9 @@ export default function StockMotorListrik() {
               type="date"
               className="border rounded px-2 py-1 w-full"
               value={form.tanggal}
-              onChange={(e) => setForm((f) => ({ ...f, tanggal: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, tanggal: e.target.value }))
+              }
             />
           </div>
           <div className="md:col-span-2">
@@ -308,15 +340,17 @@ export default function StockMotorListrik() {
             <input
               className="border rounded px-2 py-1 w-full"
               value={form.namaBarang}
-              onChange={(e) => setForm((f) => ({ ...f, namaBarang: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, namaBarang: e.target.value }))
+              }
             />
           </div>
           <div>
-            <label className="text-xs text-slate-600">No Dinamo</label>
+            <label className="text-xs text-slate-600">IMEI/Serial</label>
             <input
               className="border rounded px-2 py-1 w-full"
-              value={form.noDinamo}
-              onChange={(e) => setForm((f) => ({ ...f, noDinamo: e.target.value }))}
+              value={form.imei}
+              onChange={(e) => setForm((f) => ({ ...f, imei: e.target.value }))}
             />
           </div>
           <div>
@@ -325,7 +359,9 @@ export default function StockMotorListrik() {
               type="number"
               className="border rounded px-2 py-1 w-full text-right"
               value={form.stokSistem}
-              onChange={(e) => setForm((f) => ({ ...f, stokSistem: toNum(e.target.value) }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, stokSistem: toNum(e.target.value) }))
+              }
             />
           </div>
           <div>
@@ -334,7 +370,9 @@ export default function StockMotorListrik() {
               type="number"
               className="border rounded px-2 py-1 w-full text-right"
               value={form.stokFisik}
-              onChange={(e) => setForm((f) => ({ ...f, stokFisik: toNum(e.target.value) }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, stokFisik: toNum(e.target.value) }))
+              }
             />
           </div>
           <div className="md:col-span-2">
@@ -342,7 +380,9 @@ export default function StockMotorListrik() {
             <input
               className="border rounded px-2 py-1 w-full"
               value={form.keterangan}
-              onChange={(e) => setForm((f) => ({ ...f, keterangan: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, keterangan: e.target.value }))
+              }
             />
           </div>
         </div>
@@ -355,7 +395,10 @@ export default function StockMotorListrik() {
               >
                 Simpan Perubahan
               </button>
-              <button onClick={cancelEdit} className="rounded border px-4 py-2 text-sm">
+              <button
+                onClick={cancelEdit}
+                className="rounded border px-4 py-2 text-sm"
+              >
                 Batal
               </button>
             </>
@@ -378,7 +421,7 @@ export default function StockMotorListrik() {
               <tr>
                 <th className="px-3 py-2 text-left">Tanggal</th>
                 <th className="px-3 py-2 text-left">Nama Barang</th>
-                <th className="px-3 py-2 text-left">No Dinamo</th>
+                <th className="px-3 py-2 text-left">IMEI/Serial</th>
                 <th className="px-3 py-2 text-right">Stok Sistem</th>
                 <th className="px-3 py-2 text-right">Stok Fisik</th>
                 <th className="px-3 py-2 text-left">Keterangan</th>
@@ -390,7 +433,7 @@ export default function StockMotorListrik() {
                 <tr key={r.id} className="border-b last:border-0">
                   <td className="px-3 py-2">{r.tanggal || ""}</td>
                   <td className="px-3 py-2">{r.namaBarang}</td>
-                  <td className="px-3 py-2">{r.noDinamo || "-"}</td>
+                  <td className="px-3 py-2">{r.imei || "-"}</td>
                   <td className="px-3 py-2 text-right">{r.stokSistem}</td>
                   <td className="px-3 py-2 text-right">{r.stokFisik}</td>
                   <td className="px-3 py-2">{r.keterangan || "-"}</td>
@@ -421,7 +464,10 @@ export default function StockMotorListrik() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-3 py-6 text-center text-slate-500">
+                  <td
+                    colSpan={7}
+                    className="px-3 py-6 text-center text-slate-500"
+                  >
                     Tidak ada data.
                   </td>
                 </tr>
@@ -435,14 +481,23 @@ export default function StockMotorListrik() {
       {open && targetRow && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg p-4 w-full max-w-lg">
-            <h3 className="text-lg font-semibold mb-3">Retur Motor Listrik ke PUSAT</h3>
+            <h3 className="text-lg font-semibold mb-3">
+              Retur Motor Listrik ke PUSAT
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="md:col-span-2">
                 <div className="text-sm">
-                  <div><span className="text-slate-500">Nama:</span> <b>{targetRow.namaBarang}</b></div>
-                  <div><span className="text-slate-500">No Dinamo:</span> <b>{targetRow.noDinamo || "-"}</b></div>
+                  <div>
+                    <span className="text-slate-500">Nama:</span>{" "}
+                    <b>{targetRow.namaBarang}</b>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">IMEI/Serial:</span>{" "}
+                    <b>{targetRow.imei || "-"}</b>
+                  </div>
                   <div className="mt-1 text-xs text-slate-500">
-                    Stok Fisik Saat Ini: {toNum(targetRow.stokFisik)} | Stok Sistem: {toNum(targetRow.stokSistem)}
+                    Stok Fisik Saat Ini: {toNum(targetRow.stokFisik)} | Stok
+                    Sistem: {toNum(targetRow.stokSistem)}
                   </div>
                 </div>
               </div>
@@ -495,7 +550,10 @@ export default function StockMotorListrik() {
             </div>
 
             <div className="mt-4 flex gap-2 justify-end">
-              <button className="border rounded px-4 py-2" onClick={() => setOpen(false)}>
+              <button
+                className="border rounded px-4 py-2"
+                onClick={() => setOpen(false)}
+              >
                 Batal
               </button>
               <button

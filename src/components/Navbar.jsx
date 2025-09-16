@@ -57,7 +57,7 @@ const Navbar = ({ user, onLogout, isAuthenticated }) => {
         <div className="relative">
           <button
             onClick={() => setShowWhatsAppDropdown(!showWhatsAppDropdown)}
-            className="px-4 py-2 bg-green-500 text-white hover:bg-green-700 rounded-lg"
+            className="px-4 py-2 bg-green-500 text-white hover:bg-green-700 rounded-lg wa-btn "
           >
             Chat WhatsApp
           </button>
@@ -69,7 +69,7 @@ const Navbar = ({ user, onLogout, isAuthenticated }) => {
                 <button
                   key={index}
                   onClick={() => handleWhatsAppClick(pic.phone)}
-                  className="block w-full text-left px-4 py-2 hover:bg-gray-200"
+                  className="block w-full text-left px-4 py-2 hover:bg-gray-200 wa-icon"
                 >
                   {pic.name}
                 </button>
