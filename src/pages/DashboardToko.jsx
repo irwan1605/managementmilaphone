@@ -915,1073 +915,841 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
 
   /* ============== Render ============== */
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+  <div className="mx-auto w-full max-w-screen-xl px-4 sm:px-6 lg:px-8 space-y-6">
+    {/* Header */}
+    <div className="flex items-center justify-between flex-wrap gap-3 bg-white/70 backdrop-blur rounded-2xl px-4 py-3 border shadow-sm">
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold">Dashboard Toko — {tokoName}</h1>
+        <p className="text-slate-600 text-sm">PO Penjualan, Payment, SRP/Kredit & Grosir. Dropdown & harga otomatis dari folder data.</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx"
+          onChange={handleImportExcel}
+          className="hidden"
+          id="excel-input"
+        />
+        <label
+          htmlFor="excel-input"
+          className="cursor-pointer rounded-lg border bg-white px-3 h-10 text-sm shadow-sm hover:bg-slate-50 inline-flex items-center"
+          title="Import Excel (.xlsx)"
+        >
+          Import Excel (.xlsx)
+        </label>
+
+        <button
+          onClick={handleExportAll}
+          className="rounded-lg border bg-white px-3 h-10 text-sm shadow-sm hover:bg-slate-50 inline-flex items-center"
+          title="Export semua (.xlsx)"
+        >
+          Export ALL
+        </button>
+
+        <button
+          onClick={handleExportKeuangan}
+          className="rounded-lg bg-emerald-600 hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 text-white px-3 h-10 text-sm font-semibold shadow-sm inline-flex items-center"
+          title="Export file setoran untuk laporan keuangan pusat"
+        >
+          Export Keuangan
+        </button>
+      </div>
+    </div>
+
+    {/* Cards ringkasan */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition">
+        <div className="text-sm text-slate-500">Total Transaksi</div>
+        <div className="mt-1 text-2xl font-semibold">{totals.totalTransaksi}</div>
+      </div>
+      <div className="rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition">
+        <div className="text-sm text-slate-500">Total Qty</div>
+        <div className="mt-1 text-2xl font-semibold">{totals.totalQty}</div>
+      </div>
+      <div className="rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition">
+        <div className="text-sm text-slate-500">Subtotal</div>
+        <div className="mt-1 text-2xl font-semibold">{formatCurrency(totals.totalOmzet)}</div>
+      </div>
+      <div className="rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition">
+        <div className="text-sm text-slate-500">Grand Total</div>
+        <div className="mt-1 text-2xl font-semibold">{formatCurrency(totals.totalGrand)}</div>
+      </div>
+      <div className="rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition">
+        <div className="text-sm text-slate-500">NET (setelah MDR)</div>
+        <div className="mt-1 text-2xl font-semibold">{formatCurrency(totals.totalNet)}</div>
+      </div>
+    </div>
+
+    {/* 3 Kartu Stok (ringkas) */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Accessories */}
+      <button
+        onClick={() => navigate(`/toko/${tokoId}/stock-accessories`)}
+        className="group relative rounded-2xl p-[2px] bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-500"
+      >
+        <div className="rounded-2xl bg-white p-5 flex items-center justify-between">
+          <div>
+            <div className="text-sm text-slate-600">Stock Accessories</div>
+            <div className="text-2xl font-bold">{accCount} item</div>
+          </div>
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 opacity-80 group-hover:opacity-100 transition shadow-lg" />
+        </div>
+        <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-30 blur-xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-500 transition" />
+      </button>
+
+      {/* Handphone */}
+      <button
+        onClick={() => navigate(`/toko/${tokoId}/stock-handphone`)}
+        className="group relative rounded-2xl p-[2px] bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500"
+      >
+        <div className="rounded-2xl bg-white p-5 flex items-center justify-between">
+          <div>
+            <div className="text-sm text-slate-600">Stock Handphone</div>
+            <div className="text-2xl font-bold">{hpCount} item</div>
+          </div>
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-sky-500 opacity-80 group-hover:opacity-100 transition shadow-lg" />
+        </div>
+        <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-30 blur-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500 transition" />
+      </button>
+
+      {/* Motor Listrik */}
+      <button
+        onClick={() => navigate(`/toko/${tokoId}/stock-motor-listrik`)}
+        className="group relative rounded-2xl p-[2px] bg-gradient-to-r from-amber-500 via-orange-500 to-red-500"
+      >
+        <div className="rounded-2xl bg-white p-5 flex items-center justify-between">
+          <div>
+            <div className="text-sm text-slate-600">Stock Motor Listrik</div>
+            <div className="text-2xl font-bold">{molisCount} item</div>
+          </div>
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500 to-red-500 opacity-80 group-hover:opacity-100 transition shadow-lg" />
+        </div>
+        <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-30 blur-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 transition" />
+      </button>
+    </div>
+
+    {/* CARD 1 — PO PENJUALAN */}
+    <div className="rounded-2xl border bg-white p-4 shadow-sm">
+      <h2 className="text-lg font-semibold mb-3">PO PENJUALAN</h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">
-            Dashboard Toko — {tokoName}
-          </h1>
-          <p className="text-slate-600">
-            PO Penjualan, Payment, SRP/Kredit & Grosir. Dropdown & harga
-            otomatis dari folder data.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+          <label className="text-xs text-slate-600">Tgl Transaksi</label>
           <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx"
-            onChange={handleImportExcel}
-            className="hidden"
-            id="excel-input"
+            type="date"
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.tanggal}
+            onChange={(e) => setForm({ ...form, tanggal: e.target.value })}
           />
-          <label
-            htmlFor="excel-input"
-            className="cursor-pointer rounded-lg border bg-white px-3 py-2 text-sm shadow-sm hover:bg-slate-50"
-            title="Import Excel (.xlsx)"
-          >
-            Import Excel (.xlsx)
-          </label>
+        </div>
 
-          <button
-            onClick={handleExportAll}
-            className="rounded-lg border bg-white px-3 py-2 text-sm shadow-sm hover:bg-slate-50"
-            title="Export semua (.xlsx)"
+        <div className="xl:col-span-2">
+          <label className="text-xs text-slate-600">Nama Sales & SH</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <select
+              className="border rounded-lg px-3 h-10"
+              value={form.salesName}
+              onChange={(e) => setForm({ ...form, salesName: e.target.value })}
+            >
+              <option value="">— Pilih Sales —</option>
+              {getSalesByToko(tokoName).map((s) => (
+                <option key={s.nik || s.name} value={s.name}>{s.name}</option>
+              ))}
+            </select>
+            <select
+              className="border rounded-lg px-3 h-10"
+              value={form.shName}
+              onChange={(e) => setForm({ ...form, shName: e.target.value })}
+            >
+              <option value="">— Pilih SH —</option>
+              {unique(getSalesByToko(tokoName).map((s) => s.sh)).map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="xl:col-span-2">
+          <label className="text-xs text-slate-600">Nama Toko & Nama SL</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <select
+              className="border rounded-lg px-3 h-10"
+              value={form.tokoRef}
+              onChange={(e) => setForm({ ...form, tokoRef: e.target.value })}
+            >
+              {TOKO_LIST?.length
+                ? TOKO_LIST.map((t) => <option key={t} value={t}>{t}</option>)
+                : <option value={tokoName}>{tokoName}</option>
+              }
+            </select>
+            <select
+              className="border rounded-lg px-3 h-10"
+              value={form.slName}
+              onChange={(e) => setForm({ ...form, slName: e.target.value })}
+            >
+              <option value="">— Pilih SL —</option>
+              {unique(getSalesByToko(tokoName).map((s) => s.sl)).map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">Nama Freelance/Teknisi</label>
+          <select
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.tuyulName}
+            onChange={(e) => setForm({ ...form, tuyulName: e.target.value })}
           >
-            Export ALL
+            <option value="">— Pilih —</option>
+            {unique(getSalesByToko(tokoName).map((s) => s.tuyul)).map((v) => (
+              <option key={v} value={v}>{v}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">Sales handle user titipan</label>
+          <input
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.salesHandleTitipan}
+            onChange={(e) => setForm({ ...form, salesHandleTitipan: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">Akun Transaksi (PELANGGAN)</label>
+          <input
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.akunPelanggan}
+            onChange={(e) => setForm({ ...form, akunPelanggan: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">No Hp user / WA</label>
+          <input
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.noHp}
+            onChange={(e) => setForm({ ...form, noHp: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">No. KONTRAK/ID ORDER</label>
+          <input
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.noKontrak}
+            onChange={(e) => setForm({ ...form, noKontrak: e.target.value })}
+          />
+        </div>
+      </div>
+    </div>
+
+    {/* CARD 2 — PAYMENT METODE */}
+    <div className="rounded-2xl border bg-white p-4 shadow-sm">
+      <h2 className="text-lg font-semibold mb-3">PAYMENT METODE</h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div>
+          <label className="text-xs text-slate-600">KATEGORI HARGA</label>
+          <select
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.priceCategory}
+            onChange={(e) => setForm({ ...form, priceCategory: e.target.value })}
+          >
+            <option value="">— Pilih —</option>
+            {PRICE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+
+        <div className="xl:col-span-2">
+          <label className="text-xs text-slate-600">PAYMENT METODE</label>
+          <select
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.paymentMethod}
+            onChange={(e) => {
+              const method = e.target.value;
+              setForm((f) => ({ ...f, paymentMethod: method, leasingName: method }));
+            }}
+          >
+            {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+
+        <div className="xl:col-span-2">
+          <label className="text-xs text-slate-600">Nominal Transaksi</label>
+          <input
+            type="number"
+            min={0}
+            className="w-full border rounded-lg px-3 h-10 text-right"
+            value={form.harga}
+            onChange={(e) => setForm({ ...form, harga: toNum(e.target.value) })}
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">MDR (Pot Marketplace)</label>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              readOnly
+              className="border rounded-lg px-3 h-10 bg-slate-50 text-right"
+              value={Number(getMdr({ method: form.paymentMethod, toko: tokoName, brand: form.brand }) || 0).toFixed(2)}
+              title="Persentase MDR otomatis"
+            />
+            <input
+              readOnly
+              className="border rounded-lg px-3 h-10 bg-slate-50 text-right"
+              value={`- ${formatCurrency(finPreview.mdrFee)}`}
+              title="Nominal MDR otomatis"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">Tenor</label>
+          <select
+            className="w-full border rounded-lg px-3 h-10 text-right"
+            value={form.tenor}
+            onChange={(e) => setForm({ ...form, tenor: toNum(e.target.value) })}
+          >
+            <option value={0}>— Pilih —</option>
+            {TENOR_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">Bunga % (auto)</label>
+          <input
+            readOnly
+            className="w-full border rounded-lg px-3 h-10 bg-slate-50 text-right"
+            value={toNum(form.bunga).toFixed(2)}
+            title="Diisi otomatis dari tenor via getBungaByTenor"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">Dp via Merchant (PIUTANG)</label>
+          <input
+            type="number"
+            min={0}
+            className="w-full border rounded-lg px-3 h-10 text-right"
+            value={form.dpMerchant}
+            onChange={(e) => setForm({ ...form, dpMerchant: toNum(e.target.value) })}
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">DP ke Toko (CASH)</label>
+          <input
+            type="number"
+            min={0}
+            className="w-full border rounded-lg px-3 h-10 text-right"
+            value={form.dpToko}
+            onChange={(e) => setForm({ ...form, dpToko: toNum(e.target.value) })}
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">Request DP Talangan</label>
+          <input
+            type="number"
+            min={0}
+            className="w-full border rounded-lg px-3 h-10 text-right"
+            value={form.dpTalangan}
+            onChange={(e) => setForm({ ...form, dpTalangan: toNum(e.target.value) })}
+          />
+        </div>
+
+        <div className="xl:col-span-2">
+          <label className="text-xs text-slate-600">Sisa Limit Untuk BARANG</label>
+          <input
+            readOnly
+            className="w-full border rounded-lg px-3 h-10 bg-slate-50 text-right"
+            value={formatCurrency(sisaLimitBarang)}
+            title="Subtotal − (DP Merchant + DP Toko + DP Talangan)"
+          />
+        </div>
+      </div>
+    </div>
+
+    {/* CARD 3 — PENJUALAN SRP/KREDIT */}
+    <div className="rounded-2xl border bg-white p-4 shadow-sm">
+      <h2 className="text-lg font-semibold mb-3">PENJUALAN SRP/KREDIT</h2>
+
+      {/* MOLIS utama */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-4">
+        <div>
+          <label className="text-xs text-slate-600">BANYAKNYA UNIT MOLIS</label>
+          <input
+            type="number"
+            min={0}
+            className="w-full border rounded-lg px-3 h-10 text-right"
+            value={form.qty}
+            onChange={(e) => setForm({ ...form, qty: toNum(e.target.value) })}
+          />
+        </div>
+
+        <div className="xl:col-span-2">
+          <label className="text-xs text-slate-600">TYPE UNIT SELIS MOLIS</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <select
+              className="border rounded-lg px-3 h-10"
+              value={form.brand}
+              onChange={(e) => onChangeBrand(e.target.value)}
+            >
+              {brandOptions.map((b) => <option key={b} value={b}>{b}</option>)}
+            </select>
+            <select
+              className="border rounded-lg px-3 h-10"
+              value={form.produk}
+              onChange={(e) => onChangeProduk(e.target.value)}
+            >
+              <option value="">— Pilih Produk —</option>
+              {productOptions.map((p) => (
+                <option key={`${form.brand}-${p}`} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">Warna</label>
+          <select
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.warna}
+            onChange={(e) => setForm({ ...form, warna: e.target.value })}
+          >
+            <option value="">— Pilih Warna —</option>
+            {warnaOptions.map((w) => <option key={w} value={w}>{w}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">Baterai</label>
+          <select
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.baterai}
+            onChange={(e) => setForm({ ...form, baterai: e.target.value })}
+          >
+            <option value="">— Pilih —</option>
+            {bateraiOptions.map((x) => <option key={x} value={x}>{x}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">CHARGER</label>
+          <select
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.charger}
+            onChange={(e) => setForm({ ...form, charger: e.target.value })}
+          >
+            <option value="">— Pilih —</option>
+            {chargerOptions.map((x) => <option key={x} value={x}>{x}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-4">
+        <div>
+          <label className="text-xs text-slate-600">Harga Dipakai</label>
+          <select
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.hargaType}
+            onChange={(e) => setForm({ ...form, hargaType: e.target.value })}
+          >
+            <option value="GROSIR">GROSIR</option>
+            <option value="SRP">SRP</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">SRP</label>
+          <input
+            type="number"
+            min={0}
+            className="w-full border rounded-lg px-3 h-10 text-right"
+            value={form.srp}
+            onChange={(e) => setForm({ ...form, srp: toNum(e.target.value) })}
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">GROSIR</label>
+          <input
+            type="number"
+            min={0}
+            className="w-full border rounded-lg px-3 h-10 text-right"
+            value={form.grosir}
+            onChange={(e) => setForm({ ...form, grosir: toNum(e.target.value) })}
+          />
+        </div>
+
+        <div className="xl:col-span-3">
+          <label className="text-xs text-slate-600">TOTAL HARGA MOLIS</label>
+          <input
+            readOnly
+            className="w-full border rounded-lg px-3 h-10 bg-slate-50 text-right"
+            value={formatCurrency(toNum(form.qty) * toNum(form.harga))}
+            title="Qty × Harga"
+          />
+        </div>
+      </div>
+
+      {/* IMEI / Ongkir / Accessories / Bundling / Free */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-4">
+        <div className="xl:col-span-3">
+          <label className="text-xs text-slate-600">IMEI/NO DINAMO/RANGKA</label>
+          <input
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.imei1}
+            onChange={(e) => setForm({ ...form, imei1: e.target.value })}
+          />
+        </div>
+        <div className="xl:col-span-3">
+          <label className="text-xs text-slate-600">IMEI/NO DINAMO/RANGKA</label>
+          <input
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.imei2}
+            onChange={(e) => setForm({ ...form, imei2: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">BANYAKNYA ONGKIR</label>
+          <input readOnly className="w-full border rounded-lg px-3 h-10 bg-slate-50" value="-" />
+        </div>
+        <div>
+          <label className="text-xs text-slate-600">ONGKIR/HS CARD</label>
+          <input
+            type="number"
+            min={0}
+            className="w-full border rounded-lg px-3 h-10 text-right"
+            value={form.ongkirHsCard}
+            onChange={(e) => setForm({ ...form, ongkirHsCard: toNum(e.target.value) })}
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">BANYAKNYA AKSESORIS/SPAREPART</label>
+          <input readOnly className="w-full border rounded-lg px-3 h-10 bg-slate-50" value="-" />
+        </div>
+        <div className="xl:col-span-2">
+          <label className="text-xs text-slate-600">AKSESORIS/SPAREPART</label>
+          <input
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.aksesoris1Desc}
+            onChange={(e) => setForm({ ...form, aksesoris1Desc: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className="text-xs text-slate-600">TOTAL HARGA</label>
+          <input
+            type="number"
+            min={0}
+            className="w-full border rounded-lg px-3 h-10 text-right"
+            value={form.aksesoris1Amount}
+            onChange={(e) => setForm({ ...form, aksesoris1Amount: toNum(e.target.value) })}
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">BANYAKNYA AKSESORIS/SPAREPART</label>
+          <input readOnly className="w-full border rounded-lg px-3 h-10 bg-slate-50" value="-" />
+        </div>
+        <div className="xl:col-span-2">
+          <label className="text-xs text-slate-600">AKSESORIS/SPAREPART</label>
+          <input
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.aksesoris2Desc}
+            onChange={(e) => setForm({ ...form, aksesoris2Desc: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className="text-xs text-slate-600">TOTAL HARGA</label>
+          <input
+            type="number"
+            min={0}
+            className="w-full border rounded-lg px-3 h-10 text-right"
+            value={form.aksesoris2Amount}
+            onChange={(e) => setForm({ ...form, aksesoris2Amount: toNum(e.target.value) })}
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-600">BANYAKNYA BUNDLING MP PROTECK</label>
+          <input readOnly className="w-full border rounded-lg px-3 h-10 bg-slate-50" value="-" />
+        </div>
+        <div>
+          <label className="text-xs text-slate-600">TOTAL HARGA</label>
+          <input
+            type="number"
+            min={0}
+            className="w-full border rounded-lg px-3 h-10 text-right"
+            value={form.bundlingProtectAmount}
+            onChange={(e) => setForm({ ...form, bundlingProtectAmount: toNum(e.target.value) })}
+          />
+        </div>
+        <div className="xl:col-span-4">
+          <label className="text-xs text-slate-600">BUNDLING MP PROTECK</label>
+          <select
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.mpProtect}
+            onChange={(e) => setForm({ ...form, mpProtect: e.target.value })}
+          >
+            <option value="">— Pilih —</option>
+            {MP_PROTECT_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </div>
+
+        <div className="xl:col-span-2">
+          <label className="text-xs text-slate-600">FREE/KELENGKAPAN UNIT</label>
+          <input className="w-full border rounded-lg px-3 h-10" value={form.free1} onChange={(e) => setForm({ ...form, free1: e.target.value })} />
+        </div>
+        <div>
+          <label className="text-xs text-slate-600">BANYAKNYA</label>
+          <input readOnly className="w-full border rounded-lg px-3 h-10 bg-slate-50" value="-" />
+        </div>
+
+        <div className="xl:col-span-2">
+          <label className="text-xs text-slate-600">FREE/KELENGKAPAN UNIT</label>
+          <input className="w-full border rounded-lg px-3 h-10" value={form.free2} onChange={(e) => setForm({ ...form, free2: e.target.value })} />
+        </div>
+        <div>
+          <label className="text-xs text-slate-600">BANYAKNYA</label>
+          <input readOnly className="w-full border rounded-lg px-3 h-10 bg-slate-50" value="-" />
+        </div>
+
+        <div className="xl:col-span-2">
+          <label className="text-xs text-slate-600">FREE/KELENGKAPAN UNIT</label>
+          <input className="w-full border rounded-lg px-3 h-10" value={form.free3} onChange={(e) => setForm({ ...form, free3: e.target.value })} />
+        </div>
+        <div>
+          <label className="text-xs text-slate-600">BANYAKNYA</label>
+          <input readOnly className="w-full border rounded-lg px-3 h-10 bg-slate-50" value="-" />
+        </div>
+      </div>
+
+      <div className="mt-3">
+        <button
+          onClick={addRow}
+          className="rounded-lg bg-blue-600 hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 text-white px-4 h-10 text-sm font-semibold shadow-sm"
+        >
+          Tambah
+        </button>
+      </div>
+    </div>
+
+    {/* CARD 4 — PENJUALAN GROSIR */}
+    <div className="rounded-2xl border bg-white p-4 shadow-sm">
+      <h2 className="text-lg font-semibold mb-3">PENJUALAN GROSIR</h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div className="xl:col-span-3">
+          <div className="text-sm text-slate-600">TOTAL BARANG SELIS MOLIS</div>
+          <div className="font-semibold">
+            {formatCurrency(
+              rows
+                .filter((r) => r.hargaType === "GROSIR")
+                .reduce((acc, r) => acc + computeFinancials(r, tokoName).subtotal, 0)
+            )}
+          </div>
+        </div>
+        <div className="xl:col-span-3">
+          <div className="text-sm text-slate-600">TOTAL HARGA</div>
+          <div className="font-semibold">
+            {formatCurrency(grosirRows.reduce((a, r) => a + computeFinancials(r, tokoName).subtotal, 0))}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* TABEL & EXPORT */}
+    <div className="rounded-2xl border bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-semibold">PO Penjualan — Semua</h2>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportSRP}
+            className="rounded-lg border bg-white px-3 h-10 text-sm shadow-sm hover:bg-slate-50"
+          >
+            Export SRP (.xlsx)
           </button>
-
-          {/* === Tambahan baru: Export Keuangan sinkron FinanceReport === */}
           <button
-            onClick={handleExportKeuangan}
-            className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 text-sm shadow-sm"
-            title="Export file setoran untuk laporan keuangan pusat"
+            onClick={handleExportGrosir}
+            className="rounded-lg border bg-white px-3 h-10 text-sm shadow-sm hover:bg-slate-50"
           >
-            Export Keuangan
-          </button>
-        </div>
-      </div>
-
-      {/* Cards ringkasan */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div className="rounded-2xl border bg-white p-5 shadow-sm">
-          <div className="text-sm text-slate-500">Total Transaksi</div>
-          <div className="mt-1 text-2xl font-semibold">
-            {totals.totalTransaksi}
-          </div>
-        </div>
-        <div className="rounded-2xl border bg-white p-5 shadow-sm">
-          <div className="text-sm text-slate-500">Total Qty</div>
-          <div className="mt-1 text-2xl font-semibold">{totals.totalQty}</div>
-        </div>
-        <div className="rounded-2xl border bg-white p-5 shadow-sm">
-          <div className="text-sm text-slate-500">Subtotal</div>
-          <div className="mt-1 text-2xl font-semibold">
-            {formatCurrency(totals.totalOmzet)}
-          </div>
-        </div>
-        <div className="rounded-2xl border bg-white p-5 shadow-sm">
-          <div className="text-sm text-slate-500">Grand Total</div>
-          <div className="mt-1 text-2xl font-semibold">
-            {formatCurrency(totals.totalGrand)}
-          </div>
-        </div>
-        <div className="rounded-2xl border bg-white p-5 shadow-sm">
-          <div className="text-sm text-slate-500">NET (setelah MDR)</div>
-          <div className="mt-1 text-2xl font-semibold">
-            {formatCurrency(totals.totalNet)}
-          </div>
-        </div>
-      </div>
-
-      {/* ==================== 3 Kartu Stok (ringkas) ==================== */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Accessories */}
-        <button
-          onClick={() => navigate(`/toko/${tokoId}/stock-accessories`)}
-          className="group relative rounded-2xl p-[2px] bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-500"
-        >
-          <div className="rounded-2xl bg-white p-5 flex items-center justify-between">
-            <div>
-              <div className="text-sm text-slate-600">Stock Accessories</div>
-              <div className="text-2xl font-bold">{accCount} item</div>
-            </div>
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 opacity-80 group-hover:opacity-100 transition shadow-lg" />
-          </div>
-          <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-30 blur-xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-500 transition" />
-        </button>
-
-        {/* Handphone */}
-        <button
-          onClick={() => navigate(`/toko/${tokoId}/stock-handphone`)}
-          className="group relative rounded-2xl p-[2px] bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500"
-        >
-          <div className="rounded-2xl bg-white p-5 flex items-center justify-between">
-            <div>
-              <div className="text-sm text-slate-600">Stock Handphone</div>
-              <div className="text-2xl font-bold">{hpCount} item</div>
-            </div>
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-sky-500 opacity-80 group-hover:opacity-100 transition shadow-lg" />
-          </div>
-          <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-30 blur-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500 transition" />
-        </button>
-
-        {/* Motor Listrik */}
-        <button
-          onClick={() => navigate(`/toko/${tokoId}/stock-motor-listrik`)}
-          className="group relative rounded-2xl p-[2px] bg-gradient-to-r from-amber-500 via-orange-500 to-red-500"
-        >
-          <div className="rounded-2xl bg-white p-5 flex items-center justify-between">
-            <div>
-              <div className="text-sm text-slate-600">Stock Motor Listrik</div>
-              <div className="text-2xl font-bold">{molisCount} item</div>
-            </div>
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500 to-red-500 opacity-80 group-hover:opacity-100 transition shadow-lg" />
-          </div>
-          <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-30 blur-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 transition" />
-        </button>
-      </div>
-
-      {/* ==================== CARD 1 — PO PENJUALAN ==================== */}
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
-        <h2 className="text-lg font-semibold mb-3">PO PENJUALAN</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-          <div>
-            <label className="text-xs text-slate-600">Tgl Transaksi</label>
-            <input
-              type="date"
-              className="w-full border rounded px-2 py-1"
-              value={form.tanggal}
-              onChange={(e) => setForm({ ...form, tanggal: e.target.value })}
-            />
-          </div>
-
-          <div className="md:col-span-3">
-            <label className="text-xs text-slate-600">Nama Sales & SH</label>
-            <div className="grid grid-cols-2 gap-2">
-              <select
-                className="border rounded px-2 py-1"
-                value={form.salesName}
-                onChange={(e) =>
-                  setForm({ ...form, salesName: e.target.value })
-                }
-              >
-                <option value="">— Pilih Sales —</option>
-                {getSalesByToko(tokoName).map((s) => (
-                  <option key={s.nik || s.name} value={s.name}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="border rounded px-2 py-1"
-                value={form.shName}
-                onChange={(e) => setForm({ ...form, shName: e.target.value })}
-              >
-                <option value="">— Pilih SH —</option>
-                {unique(getSalesByToko(tokoName).map((s) => s.sh)).map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="md:col-span-3">
-            <label className="text-xs text-slate-600">
-              Nama Toko & Nama SL
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <select
-                className="border rounded px-2 py-1"
-                value={form.tokoRef}
-                onChange={(e) => setForm({ ...form, tokoRef: e.target.value })}
-              >
-                {TOKO_LIST?.length ? (
-                  TOKO_LIST.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))
-                ) : (
-                  <option value={tokoName}>{tokoName}</option>
-                )}
-              </select>
-
-              <select
-                className="border rounded px-2 py-1"
-                value={form.slName}
-                onChange={(e) => setForm({ ...form, slName: e.target.value })}
-              >
-                <option value="">— Pilih SL —</option>
-                {unique(getSalesByToko(tokoName).map((s) => s.sl)).map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">
-              Nama Freelance/Teknisi
-            </label>
-            <select
-              className="w-full border rounded px-2 py-1"
-              value={form.tuyulName}
-              onChange={(e) => setForm({ ...form, tuyulName: e.target.value })}
-            >
-              <option value="">— Pilih —</option>
-              {unique(getSalesByToko(tokoName).map((s) => s.tuyul)).map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">
-              Nama Sales handle user titipan
-            </label>
-            <input
-              className="w-full border rounded px-2 py-1"
-              value={form.salesHandleTitipan}
-              onChange={(e) =>
-                setForm({ ...form, salesHandleTitipan: e.target.value })
-              }
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">
-              Akun Transaksi (PELANGGAN)
-            </label>
-            <input
-              className="w-full border rounded px-2 py-1"
-              value={form.akunPelanggan}
-              onChange={(e) =>
-                setForm({ ...form, akunPelanggan: e.target.value })
-              }
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">No Hp user / WA</label>
-            <input
-              className="w-full border rounded px-2 py-1"
-              value={form.noHp}
-              onChange={(e) => setForm({ ...form, noHp: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">
-              No. KONTRAK/ID ORDER
-            </label>
-            <input
-              className="w-full border rounded px-2 py-1"
-              value={form.noKontrak}
-              onChange={(e) => setForm({ ...form, noKontrak: e.target.value })}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ==================== CARD 2 — PAYMENT METODE ==================== */}
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
-        <h2 className="text-lg font-semibold mb-3">PAYMENT METODE</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-          <div>
-            <label className="text-xs text-slate-600">KATEGORI HARGA</label>
-            <select
-              className="w-full border rounded px-2 py-1"
-              value={form.priceCategory}
-              onChange={(e) =>
-                setForm({ ...form, priceCategory: e.target.value })
-              }
-            >
-              <option value="">— Pilih —</option>
-              {PRICE_CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Ganti PEMBAYARAN MELALUI -> PAYMENT METODE (dropdown terpusat) */}
-          <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">PAYMENT METODE</label>
-            <select
-              className="w-full border rounded px-2 py-1"
-              value={form.paymentMethod}
-              onChange={(e) => {
-                const method = e.target.value;
-                setForm((f) => ({
-                  ...f,
-                  paymentMethod: method,
-                  leasingName: method, // sinkron agar ekspor lama tetap isi
-                }));
-              }}
-            >
-              {PAYMENT_METHODS.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Nominal transaksi (tanpa select method kedua) */}
-          <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">Nominal Transaksi</label>
-            <input
-              type="number"
-              min={0}
-              className="w-full border rounded px-2 py-1 text-right"
-              value={form.harga}
-              onChange={(e) =>
-                setForm({ ...form, harga: toNum(e.target.value) })
-              }
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">
-              MDR (Pot Marketplace)
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                readOnly
-                className="border rounded px-2 py-1 bg-slate-50 text-right"
-                value={Number(
-                  getMdr({
-                    method: form.paymentMethod,
-                    toko: tokoName,
-                    brand: form.brand,
-                  }) || 0
-                ).toFixed(2)}
-                title="Persentase MDR otomatis"
-              />
-              <input
-                readOnly
-                className="border rounded px-2 py-1 bg-slate-50 text-right"
-                value={`- ${formatCurrency(finPreview.mdrFee)}`}
-                title="Nominal MDR otomatis"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">Tenor</label>
-            <select
-              className="w-full border rounded px-2 py-1 text-right"
-              value={form.tenor}
-              onChange={(e) =>
-                setForm({ ...form, tenor: toNum(e.target.value) })
-              }
-            >
-              <option value={0}>— Pilih —</option>
-              {TENOR_OPTIONS.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">Bunga % (auto)</label>
-            <input
-              readOnly
-              className="w-full border rounded px-2 py-1 bg-slate-50 text-right"
-              value={toNum(form.bunga).toFixed(2)}
-              title="Diisi otomatis dari tenor via getBungaByTenor"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">
-              Dp User via Merchant (PIUTANG)
-            </label>
-            <input
-              type="number"
-              min={0}
-              className="w-full border rounded px-2 py-1 text-right"
-              value={form.dpMerchant}
-              onChange={(e) =>
-                setForm({ ...form, dpMerchant: toNum(e.target.value) })
-              }
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">
-              DP User Ke Toko (CASH)
-            </label>
-            <input
-              type="number"
-              min={0}
-              className="w-full border rounded px-2 py-1 text-right"
-              value={form.dpToko}
-              onChange={(e) =>
-                setForm({ ...form, dpToko: toNum(e.target.value) })
-              }
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">
-              Request DP Talangan
-            </label>
-            <input
-              type="number"
-              min={0}
-              className="w-full border rounded px-2 py-1 text-right"
-              value={form.dpTalangan}
-              onChange={(e) =>
-                setForm({ ...form, dpTalangan: toNum(e.target.value) })
-              }
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">
-              Sisa Limit Untuk BARANG
-            </label>
-            <input
-              readOnly
-              className="w-full border rounded px-2 py-1 bg-slate-50 text-right"
-              value={formatCurrency(sisaLimitBarang)}
-              title="Subtotal − (DP Merchant + DP Toko + DP Talangan)"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ==================== CARD 3 — PENJUALAN SRP/KREDIT ==================== */}
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
-        <h2 className="text-lg font-semibold mb-3">PENJUALAN SRP/KREDIT</h2>
-
-        {/* MOLIS utama */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4">
-          <div>
-            <label className="text-xs text-slate-600">
-              BANYAKNYA UNIT MOLIS
-            </label>
-            <input
-              type="number"
-              min={0}
-              className="w-full border rounded px-2 py-1 text-right"
-              value={form.qty}
-              onChange={(e) => setForm({ ...form, qty: toNum(e.target.value) })}
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">
-              TYPE UNIT SELIS MOLIS
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <select
-                className="border rounded px-2 py-1"
-                value={form.brand}
-                onChange={(e) => onChangeBrand(e.target.value)}
-              >
-                {brandOptions.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="border rounded px-2 py-1"
-                value={form.produk}
-                onChange={(e) => onChangeProduk(e.target.value)}
-              >
-                <option value="">— Pilih Produk —</option>
-                {productOptions.map((p) => (
-                  <option key={`${form.brand}-${p}`} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">Warna</label>
-            <select
-              className="w-full border rounded px-2 py-1"
-              value={form.warna}
-              onChange={(e) => setForm({ ...form, warna: e.target.value })}
-            >
-              <option value="">— Pilih Warna —</option>
-              {warnaOptions.map((w) => (
-                <option key={w} value={w}>
-                  {w}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">Baterai</label>
-            <select
-              className="w-full border rounded px-2 py-1"
-              value={form.baterai}
-              onChange={(e) => setForm({ ...form, baterai: e.target.value })}
-            >
-              <option value="">— Pilih —</option>
-              {bateraiOptions.map((x) => (
-                <option key={x} value={x}>
-                  {x}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">CHARGER</label>
-            <select
-              className="w-full border rounded px-2 py-1"
-              value={form.charger}
-              onChange={(e) => setForm({ ...form, charger: e.target.value })}
-            >
-              <option value="">— Pilih —</option>
-              {chargerOptions.map((x) => (
-                <option key={x} value={x}>
-                  {x}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4">
-          <div>
-            <label className="text-xs text-slate-600">Harga Dipakai</label>
-            <select
-              className="w-full border rounded px-2 py-1"
-              value={form.hargaType}
-              onChange={(e) => setForm({ ...form, hargaType: e.target.value })}
-            >
-              <option value="GROSIR">GROSIR</option>
-              <option value="SRP">SRP</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">SRP</label>
-            <input
-              type="number"
-              min={0}
-              className="w-full border rounded px-2 py-1 text-right"
-              value={form.srp}
-              onChange={(e) => setForm({ ...form, srp: toNum(e.target.value) })}
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">GROSIR</label>
-            <input
-              type="number"
-              min={0}
-              className="w-full border rounded px-2 py-1 text-right"
-              value={form.grosir}
-              onChange={(e) =>
-                setForm({ ...form, grosir: toNum(e.target.value) })
-              }
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">TOTAL HARGA MOLIS</label>
-            <input
-              readOnly
-              className="w-full border rounded px-2 py-1 bg-slate-50 text-right"
-              value={formatCurrency(toNum(form.qty) * toNum(form.harga))}
-              title="Qty × Harga"
-            />
-          </div>
-        </div>
-
-        {/* IMEI / Ongkir / Accessories / Bundling / Free */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4">
-          <div className="md:col-span-3">
-            <label className="text-xs text-slate-600">
-              IMEI/NO DINAMO/RANGKA
-            </label>
-            <input
-              className="w-full border rounded px-2 py-1"
-              value={form.imei1}
-              onChange={(e) => setForm({ ...form, imei1: e.target.value })}
-            />
-          </div>
-          <div className="md:col-span-3">
-            <label className="text-xs text-slate-600">
-              IMEI/NO DINAMO/RANGKA
-            </label>
-            <input
-              className="w-full border rounded px-2 py-1"
-              value={form.imei2}
-              onChange={(e) => setForm({ ...form, imei2: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">BANYAKNYA ONGKIR</label>
-            <input
-              readOnly
-              className="w-full border rounded px-2 py-1 bg-slate-50"
-              value="-"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-slate-600">ONGKIR/HS CARD</label>
-            <input
-              type="number"
-              min={0}
-              className="w-full border rounded px-2 py-1 text-right"
-              value={form.ongkirHsCard}
-              onChange={(e) =>
-                setForm({ ...form, ongkirHsCard: toNum(e.target.value) })
-              }
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">
-              BANYAKNYA AKSESORIS/SPAREPART
-            </label>
-            <input
-              readOnly
-              className="w-full border rounded px-2 py-1 bg-slate-50"
-              value="-"
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">
-              AKSESORIS/SPAREPART
-            </label>
-            <input
-              className="w-full border rounded px-2 py-1"
-              value={form.aksesoris1Desc}
-              onChange={(e) =>
-                setForm({ ...form, aksesoris1Desc: e.target.value })
-              }
-            />
-          </div>
-          <div>
-            <label className="text-xs text-slate-600">TOTAL HARGA</label>
-            <input
-              type="number"
-              min={0}
-              className="w-full border rounded px-2 py-1 text-right"
-              value={form.aksesoris1Amount}
-              onChange={(e) =>
-                setForm({ ...form, aksesoris1Amount: toNum(e.target.value) })
-              }
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">
-              BANYAKNYA AKSESORIS/SPAREPART
-            </label>
-            <input
-              readOnly
-              className="w-full border rounded px-2 py-1 bg-slate-50"
-              value="-"
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">
-              AKSESORIS/SPAREPART
-            </label>
-            <input
-              className="w-full border rounded px-2 py-1"
-              value={form.aksesoris2Desc}
-              onChange={(e) =>
-                setForm({ ...form, aksesoris2Desc: e.target.value })
-              }
-            />
-          </div>
-          <div>
-            <label className="text-xs text-slate-600">TOTAL HARGA</label>
-            <input
-              type="number"
-              min={0}
-              className="w-full border rounded px-2 py-1 text-right"
-              value={form.aksesoris2Amount}
-              onChange={(e) =>
-                setForm({ ...form, aksesoris2Amount: toNum(e.target.value) })
-              }
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">
-              BANYAKNYA BUNDLING MP PROTECK
-            </label>
-            <input
-              readOnly
-              className="w-full border rounded px-2 py-1 bg-slate-50"
-              value="-"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-slate-600">TOTAL HARGA</label>
-            <input
-              type="number"
-              min={0}
-              className="w-full border rounded px-2 py-1 text-right"
-              value={form.bundlingProtectAmount}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  bundlingProtectAmount: toNum(e.target.value),
-                })
-              }
-            />
-          </div>
-          <div className="md:col-span-4">
-            <label className="text-xs text-slate-600">
-              BUNDLING MP PROTECK
-            </label>
-            <select
-              className="w-full border rounded px-2 py-1"
-              value={form.mpProtect}
-              onChange={(e) => setForm({ ...form, mpProtect: e.target.value })}
-            >
-              <option value="">— Pilih —</option>
-              {MP_PROTECT_OPTIONS.map((o) => (
-                <option key={o} value={o}>
-                  {o}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">
-              FREE/KELENGKAPAN UNIT
-            </label>
-            <input
-              className="w-full border rounded px-2 py-1"
-              value={form.free1}
-              onChange={(e) => setForm({ ...form, free1: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="text-xs text-slate-600">BANYAKNYA</label>
-            <input
-              readOnly
-              className="w-full border rounded px-2 py-1 bg-slate-50"
-              value="-"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">
-              FREE/KELENGKAPAN UNIT
-            </label>
-            <input
-              className="w-full border rounded px-2 py-1"
-              value={form.free2}
-              onChange={(e) => setForm({ ...form, free2: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="text-xs text-slate-600">BANYAKNYA</label>
-            <input
-              readOnly
-              className="w-full border rounded px-2 py-1 bg-slate-50"
-              value="-"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">
-              FREE/KELENGKAPAN UNIT
-            </label>
-            <input
-              className="w-full border rounded px-2 py-1"
-              value={form.free3}
-              onChange={(e) => setForm({ ...form, free3: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="text-xs text-slate-600">BANYAKNYA</label>
-            <input
-              readOnly
-              className="w-full border rounded px-2 py-1 bg-slate-50"
-              value="-"
-            />
-          </div>
-        </div>
-
-        <div className="mt-3">
-          <button
-            onClick={addRow}
-            className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm font-semibold shadow-sm"
-          >
-            Tambah
+            Export Grosir (.xlsx)
           </button>
         </div>
       </div>
 
-      {/* ==================== CARD 4 — PENJUALAN GROSIR ==================== */}
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
-        <h2 className="text-lg font-semibold mb-3">PENJUALAN GROSIR</h2>
-
-        {/* ringkas: gunakan data hargaType=GROSIR */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-          <div className="md:col-span-3">
-            <div className="text-sm text-slate-600">
-              TOTAL BARANG SELIS MOLIS
-            </div>
-            <div className="font-semibold">
-              {formatCurrency(
-                rows
-                  .filter((r) => r.hargaType === "GROSIR")
-                  .reduce(
-                    (acc, r) => acc + computeFinancials(r, tokoName).subtotal,
-                    0
-                  )
-              )}
-            </div>
-          </div>
-          <div className="md:col-span-3">
-            <div className="text-sm text-slate-600">TOTAL HARGA</div>
-            <div className="font-semibold">
-              {formatCurrency(
-                grosirRows.reduce(
-                  (a, r) => a + computeFinancials(r, tokoName).subtotal,
-                  0
-                )
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ==================== TABEL UTAMA (tetap) ==================== */}
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">PO Penjualan — Semua</h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleExportSRP}
-              className="rounded-lg border bg-white px-3 py-2 text-sm shadow-sm hover:bg-slate-50"
-            >
-              Export SRP (.xlsx)
-            </button>
-            <button
-              onClick={handleExportGrosir}
-              className="rounded-lg border bg-white px-3 py-2 text-sm shadow-sm hover:bg-slate-50"
-            >
-              Export Grosir (.xlsx)
-            </button>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="min-w-[2300px] text-sm">
-            <thead className="bg-slate-50 text-slate-600">
-              <tr>
-                <th className="px-3 py-2 text-left">Tanggal</th>
-                <th className="px-3 py-2 text-left">Brand</th>
-                <th className="px-3 py-2 text-left">Produk</th>
-                <th className="px-3 py-2 text-left">Warna</th>
-                <th className="px-3 py-2 text-left">Baterai</th>
-                <th className="px-3 py-2 text-left">Charger</th>
-                <th className="px-3 py-2 text-right">Qty</th>
-                <th className="px-3 py-2 text-left">HargaDipakai</th>
-                <th className="px-3 py-2 text-right">Harga</th>
-                <th className="px-3 py-2 text-right">AddOns</th>
-                <th className="px-3 py-2 text-right">Subtotal</th>
-                <th className="px-3 py-2 text-right">MDR %</th>
-                <th className="px-3 py-2 text-right">NET</th>
-                <th className="px-3 py-2 text-left">Payment</th>
-                <th className="px-3 py-2 text-left">Leasing</th>
-                <th className="px-3 py-2 text-right">DP Merch</th>
-                <th className="px-3 py-2 text-right">DP Toko</th>
-                <th className="px-3 py-2 text-right">DP Talangan</th>
-                <th className="px-3 py-2 text-right">Tenor</th>
-                <th className="px-3 py-2 text-right">Bunga %</th>
-                <th className="px-3 py-2 text-right">Cicilan/Bln</th>
-                <th className="px-3 py-2 text-right">Grand Total</th>
-                <th className="px-3 py-2 text-left">Sales</th>
-                <th className="px-3 py-2 text-left">NIK</th>
-                <th className="px-3 py-2 text-left">TOKO</th>
-                <th className="px-3 py-2 text-left">STORE</th>
-                <th className="px-3 py-2 text-left">SH</th>
-                <th className="px-3 py-2 text-left">SL</th>
-                <th className="px-3 py-2 text-left">TUYUL</th>
-                <th className="px-3 py-2 text-left">No Kontrak</th>
-                <th className="px-3 py-2 text-left">Akun</th>
-                <th className="px-3 py-2 text-left">No HP/WA</th>
-                <th className="px-3 py-2 text-left">Status</th>
-                <th className="px-3 py-2 text-left">Approval Note</th>
-                <th className="px-3 py-2 text-left">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
+      {/* Shell responsif: mobile cards + desktop table */}
+      <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+        <div className="inline-block min-w-full align-middle">
+          <div className="overflow-hidden rounded-2xl border bg-white">
+            {/* MOBILE CARDS */}
+            <div className="md:hidden divide-y">
               {rows.map((row) => {
                 const f = computeFinancials(row, tokoName);
                 return (
-                  <tr key={row.id} className="border-b last:border-0">
-                    <td className="px-3 py-2">{row.tanggal}</td>
-                    <td className="px-3 py-2">{row.brand}</td>
-                    <td className="px-3 py-2">{row.produk}</td>
-                    <td className="px-3 py-2">{row.warna}</td>
-                    <td className="px-3 py-2">{row.baterai || "-"}</td>
-                    <td className="px-3 py-2">{row.charger || "-"}</td>
-                    <td className="px-3 py-2 text-right">{row.qty}</td>
-                    <td className="px-3 py-2">{row.hargaType}</td>
-                    <td className="px-3 py-2 text-right">
-                      {formatCurrency(row.harga)}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {formatCurrency(
-                        toNum(row.ongkirHsCard) +
-                          toNum(row.aksesoris1Amount) +
-                          toNum(row.aksesoris2Amount) +
-                          toNum(row.bundlingProtectAmount)
-                      )}
-                    </td>         
-                    <td className="px-3 py-2 text-right">
-                      {formatCurrency(f.subtotal)}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {Number(f.mdrPct).toFixed(2)}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {formatCurrency(f.net)}
-                    </td>
-                    <td className="px-3 py-2">{row.paymentMethod}</td>
-                    <td className="px-3 py-2">{row.leasingName || "-"}</td>
-                    <td className="px-3 py-2 text-right">
-                      {formatCurrency(row.dpMerchant)}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {formatCurrency(row.dpToko)}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {formatCurrency(row.dpTalangan)}
-                    </td>
-                    <td className="px-3 py-2 text-right">{row.tenor || 0}</td>
-                    <td className="px-3 py-2 text-right">
-                      {toNum(row.bunga).toFixed(2)}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {formatCurrency(f.cicilan)}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {formatCurrency(f.grandTotal)}
-                    </td>
-                    <td className="px-3 py-2">{row.salesName || "-"}</td>
-                    <td className="px-3 py-2">{row.nik || "-"}</td>
-                    <td className="px-3 py-2">{row.tokoRef || "-"}</td>
-                    <td className="px-3 py-2">{row.storeName || "-"}</td>
-                    <td className="px-3 py-2">{row.shName || "-"}</td>
-                    <td className="px-3 py-2">{row.slName || "-"}</td>
-                    <td className="px-3 py-2">{row.tuyulName || "-"}</td>
-                    <td className="px-3 py-2">{row.noKontrak || "-"}</td>
-                    <td className="px-3 py-2">{row.akunPelanggan || "-"}</td>
-                    <td className="px-3 py-2">{row.noHp || "-"}</td>
-                    <td className="px-3 py-2">
+                  <div key={row.id} className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-semibold">{row.produk || "-"}</div>
+                        <div className="text-xs text-slate-500">
+                          {row.brand} • {row.tanggal}
+                        </div>
+                      </div>
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ${
-                          row.approved
-                            ? "bg-green-100 text-green-700"
-                            : "bg-yellow-100 text-yellow-700"
+                          row.approved ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
                         }`}
                       >
                         {row.approved ? "APPROVED" : "DRAFT"}
                       </span>
-                    </td>
-                    <td className="px-3 py-2 text-xs text-slate-600">
-                      {row.approved
-                        ? `By ${row.approvedBy || "-"} @ ${formatDateTime(
-                            row.approvedAt
-                          )}`
-                        : "-"}
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex gap-2">
-                        {/* tombol edit/hapus/approve biarkan sesuai logic-mu */}
+                    </div>
+
+                    <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <dt className="text-slate-500">Payment</dt>
+                        <dd className="font-medium">{row.paymentMethod}</dd>
                       </div>
-                    </td>
-                  </tr>
+                      <div className="text-right">
+                        <dt className="text-slate-500">NET</dt>
+                        <dd className="font-semibold">{formatCurrency(f.net)}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-500">Qty</dt>
+                        <dd className="font-medium">{row.qty}</dd>
+                      </div>
+                      <div className="text-right">
+                        <dt className="text-slate-500">Harga</dt>
+                        <dd className="font-medium">{formatCurrency(row.harga)}</dd>
+                      </div>
+                    </dl>
+                  </div>
                 );
               })}
               {rows.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={35}
-                    className="px-3 py-6 text-center text-slate-500"
-                  >
-                    Belum ada data transaksi untuk {tokoName}.
-                  </td>
-                </tr>
+                <div className="p-6 text-center text-slate-500">
+                  Belum ada data transaksi untuk {tokoName}.
+                </div>
               )}
-            </tbody>
-          </table>
-        </div>
+            </div>
 
-        {/* Catatan & pengiriman */}
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-6 gap-3">
-          <div className="md:col-span-3">
-            <label className="text-xs text-slate-600">
-              Note/keterangan tambahan
-            </label>
-            <input
-              className="w-full border rounded px-2 py-1"
-              value={form.note}
-              onChange={(e) => setForm({ ...form, note: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="text-xs text-slate-600">
-              TGL PENGAMBILAN UNIT
-            </label>
-            <input
-              type="date"
-              className="w-full border rounded px-2 py-1"
-              value={form.tglPengambilan}
-              onChange={(e) =>
-                setForm({ ...form, tglPengambilan: e.target.value })
-              }
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">ALAMAT PENGIRIMAN</label>
-            <input
-              className="w-full border rounded px-2 py-1"
-              value={form.alamatPengiriman}
-              onChange={(e) =>
-                setForm({ ...form, alamatPengiriman: e.target.value })
-              }
-            />
+            {/* DESKTOP TABLE */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-50 text-slate-600 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Tanggal</th>
+                    <th className="px-3 py-2 text-left">Brand</th>
+                    <th className="px-3 py-2 text-left">Produk</th>
+                    <th className="px-3 py-2 text-right">Harga</th>
+                    <th className="px-3 py-2 text-right">NET</th>
+                    <th className="px-3 py-2 text-left">Payment</th>
+                    <th className="px-3 py-2 text-left hidden lg:table-cell">Warna</th>
+                    <th className="px-3 py-2 text-right hidden lg:table-cell">Qty</th>
+                    <th className="px-3 py-2 text-right hidden xl:table-cell">AddOns</th>
+                    <th className="px-3 py-2 text-right hidden xl:table-cell">MDR %</th>
+                    <th className="px-3 py-2 text-left">Status</th>
+                    <th className="px-3 py-2 text-left">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {rows.map((row) => {
+                    const f = computeFinancials(row, tokoName);
+                    return (
+                      <tr key={row.id} className="hover:bg-slate-50">
+                        <td className="px-3 py-2">{row.tanggal}</td>
+                        <td className="px-3 py-2">{row.brand}</td>
+                        <td className="px-3 py-2">{row.produk}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(row.harga)}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(f.net)}</td>
+                        <td className="px-3 py-2">{row.paymentMethod}</td>
+                        <td className="px-3 py-2 hidden lg:table-cell">{row.warna || "-"}</td>
+                        <td className="px-3 py-2 text-right hidden lg:table-cell">{row.qty}</td>
+                        <td className="px-3 py-2 text-right hidden xl:table-cell">
+                          {formatCurrency(
+                            toNum(row.ongkirHsCard) +
+                              toNum(row.aksesoris1Amount) +
+                              toNum(row.aksesoris2Amount) +
+                              toNum(row.bundlingProtectAmount)
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right hidden xl:table-cell">
+                          {Number(f.mdrPct).toFixed(2)}
+                        </td>
+                        <td className="px-3 py-2">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ${
+                              row.approved ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                            }`}
+                          >
+                            {row.approved ? "APPROVED" : "DRAFT"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            {/* tempatkan aksi jika diperlukan */}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {rows.length === 0 && (
+                    <tr>
+                      <td colSpan={12} className="px-3 py-6 text-center text-slate-500">
+                        Belum ada data transaksi untuk {tokoName}.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
 
-      <p className="text-xs text-slate-500">
-        Semua dropdown/rumus mengikuti file di folder <code>data</code>. MDR% &
-        nominal otomatis, Bunga% terisi otomatis saat memilih tenor (helper{" "}
-        <code>getBungaByTenor</code>). “Sisa Limit Untuk BARANG” = Subtotal −
-        (DP Merchant + DP Toko + DP Talangan). PAYMENT METODE diekspor terpusat
-        dari <code>MasterDataPenjualan.js</code>.
-      </p>
+      {/* Catatan & pengiriman */}
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div className="xl:col-span-3">
+          <label className="text-xs text-slate-600">Note/keterangan tambahan</label>
+          <input
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.note}
+            onChange={(e) => setForm({ ...form, note: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className="text-xs text-slate-600">TGL PENGAMBILAN UNIT</label>
+          <input
+            type="date"
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.tglPengambilan}
+            onChange={(e) => setForm({ ...form, tglPengambilan: e.target.value })}
+          />
+        </div>
+        <div className="xl:col-span-2">
+          <label className="text-xs text-slate-600">ALAMAT PENGIRIMAN</label>
+          <input
+            className="w-full border rounded-lg px-3 h-10"
+            value={form.alamatPengiriman}
+            onChange={(e) => setForm({ ...form, alamatPengiriman: e.target.value })}
+          />
+        </div>
+      </div>
     </div>
-  );
+
+    <p className="text-xs text-slate-500">
+      Semua Dropdown/Rumus mengikuti file di folder <code>data</code>. MDR% & nominal otomatis,
+      Bunga% terisi otomatis saat memilih tenor (<code>getBungaByTenor</code>).
+      “Sisa Limit Untuk BARANG” = Subtotal − (DP Merchant + DP Toko + DP Talangan).
+      PAYMENT METODE diekspor terpusat dari <code>MasterDataPenjualan.js</code>.
+    </p>
+  </div>
+);
 }
