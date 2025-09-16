@@ -117,12 +117,7 @@ const Navbar = ({ user, onLogout, isAuthenticated }) => {
             </button>
 
             {/* Register tetap ke "/register" */}
-            <Link
-              className="px-4 py-2 bg-blue-500 text-white hover:bg-blue-700 rounded-lg"
-              to="./register"
-            >
-              Register
-            </Link>
+           
           </div>
         )}
       </div>
