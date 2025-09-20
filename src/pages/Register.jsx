@@ -1,41 +1,75 @@
-// Register.jsx
-import React, { useState } from "react";
+// src/pages/Register.jsx
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import userRoles from "../data/UserManagementRole";
+import TOKO_LABELS from "../data/TokoLabels";
 
-const tokoOptions = Array.from({ length: 10 }, (_, i) => i + 1);
+// Buat reverse map: Nama Toko -> ID
+const NAME_TO_ID = Object.fromEntries(
+  Object.entries(TOKO_LABELS).map(([id, label]) => [label.toUpperCase(), Number(id)])
+);
 
 export default function Register({ addUser }) {
+  // Ambil nama-nama toko unik dari master user (abaikan ALL/superadmin)
+  const tokoNames = useMemo(() => {
+    const names = (userRoles || [])
+      .map((u) => (u && u.toko ? String(u.toko).trim() : ""))
+      .filter(Boolean)
+      .filter((t) => t.toUpperCase() !== "ALL");
+    return Array.from(new Set(names));
+  }, []);
+
   const [form, setForm] = useState({
     username: "",
     password: "",
-    role: "pic_toko",
-    toko: 1,
+    role: "pic_toko",             // "pic_toko" | "superadmin"
+    tokoName: tokoNames[0] || "", // simpan pilihan user sebagai nama
     name: "",
   });
+
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = () => {
-    const { username, password, role, toko, name } = form;
+    setError("");
+    const { username, password, role, tokoName, name } = form;
+
     if (!username || !password) {
       setError("Username & password wajib diisi.");
       return;
     }
 
-    // rakit role final
-    const finalRole = role === "superadmin" ? "superadmin" : `pic_toko${toko}`;
+    // Cari ID toko dari nama (harus ada di TokoLabels)
+    let tokoId = null;
+    let finalRole = "superadmin";
+    let finalTokoName = "ALL";
+
+    if (role !== "superadmin") {
+      const id = NAME_TO_ID[(tokoName || "").toUpperCase()];
+      if (!id) {
+        setError("Nama toko tidak dikenali. Pastikan nama toko ada di TokoLabels.");
+        return;
+      }
+      tokoId = id;
+      finalRole = `pic_toko${id}`;  // ← kompatibel dengan seluruh app
+      finalTokoName = tokoName;
+    }
+
     const newUser = {
       username: username.trim(),
       password,
       role: finalRole,
-      toko: role === "superadmin" ? null : Number(toko),
-      name: name || username.trim(),
+      toko: tokoId,             // simpan ID (kompat)
+      tokoId,                   // eksplisit
+      tokoName: finalTokoName,  // simpan juga nama agar enak ditampilkan
+      name: name?.trim() || username.trim(),
+      nama: name?.trim() || username.trim(), // kompat alias
     };
 
-    // simpan ke localStorage.users
+    // Simpan ke localStorage.users (dengan validasi username unik)
     try {
       const ls = JSON.parse(localStorage.getItem("users")) || [];
-      if (ls.some((u) => u.username === newUser.username)) {
+      if (ls.some((u) => (u.username || "").toLowerCase() === newUser.username.toLowerCase())) {
         setError("Username sudah dipakai.");
         return;
       }
@@ -54,7 +88,7 @@ export default function Register({ addUser }) {
   return (
     <div className="flex h-screen items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-xl shadow-lg w-[28rem]">
-        <h2 className="text-xl font-bold mb-4 text-center">Register</h2>
+        <h2 className="text-xl font-bold mb-4 text-center">REGISTRASI PIC TOKO</h2>
         {error && <p className="text-red-500 mb-3 text-center">{error}</p>}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -99,7 +133,7 @@ export default function Register({ addUser }) {
               onChange={(e) => setForm({ ...form, role: e.target.value })}
             >
               <option value="pic_toko">pic_toko</option>
-              <option value="superadmin">superadmin</option>
+              {/* <option value="superadmin">superadmin</option> */}
             </select>
           </div>
 
@@ -108,14 +142,18 @@ export default function Register({ addUser }) {
               <label className="text-xs text-slate-600">Toko</label>
               <select
                 className="w-full border p-2 rounded"
-                value={form.toko}
-                onChange={(e) => setForm({ ...form, toko: Number(e.target.value) })}
+                value={form.tokoName}
+                onChange={(e) => setForm({ ...form, tokoName: e.target.value })}
               >
-                {tokoOptions.map((n) => (
-                  <option key={n} value={n}>
-                    Toko {n}
-                  </option>
-                ))}
+                {tokoNames.length ? (
+                  tokoNames.map((nama) => (
+                    <option key={nama} value={nama}>
+                      {nama}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">(Belum ada toko di UserManagementRole)</option>
+                )}
               </select>
             </div>
           )}
