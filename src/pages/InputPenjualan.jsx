@@ -531,7 +531,7 @@ export default function InputPenjualan({ user }) {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Input Penjualan</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Input Penjualan Pusat</h1>
           <p className="text-slate-600">Form input + tabel ringkas. Tenor aktif & bunga otomatis.</p>
         </div>
 

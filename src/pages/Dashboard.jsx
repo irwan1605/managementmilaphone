@@ -486,7 +486,7 @@ export default function Dashboard({ user }) {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="rounded-xl border bg-white p-4 shadow-sm mt-6">
           <table className="min-w-[720px] text-sm">
             <thead className="bg-slate-50 text-slate-600">
               <tr>
@@ -566,7 +566,7 @@ export default function Dashboard({ user }) {
       </div>
 
       {/* Grafik */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 p-6">
         {/* Bar Chart */}
         <div className="bg-white p-4 rounded shadow-lg">
           <h2 className="text-xl font-semibold mb-4">
