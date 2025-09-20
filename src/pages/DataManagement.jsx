@@ -796,7 +796,7 @@ export default function DataManagement() {
   return (
     <div className="p-4 space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-xl md:text-2xl font-bold">Data Management (Master Data)</h2>
+        <h2 className="text-xl md:text-2xl font-bold">Data Management (Master Data) MILA PHONE</h2>
         <div className="flex items-center gap-2">
           <button onClick={exportExcel} className="px-3 py-2 bg-green-600 text-white rounded shadow-sm">
             Export All (.xlsx)
