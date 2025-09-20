@@ -3,19 +3,53 @@ import React, { useEffect, useMemo, useState } from "react";
 import defaultUsers from "../data/UserManagementRole";
 import TOKO_LABELS from "../data/TokoLabels";
 
+// Buat daftar toko dari TokoLabels (id -> label)
 const tokoEntries = Object.entries(TOKO_LABELS)
   .map(([id, label]) => ({ id: Number(id), label }))
   .sort((a, b) => a.id - b.id);
 
-function rolePieces(role, toko) {
-  if (role === "superadmin") return { base: "superadmin", tokoId: null };
-  const m = /^pic_toko(\d+)$/.exec(role || "");
-  const tokoId = Number(toko ?? (m ? m[1] : undefined));
-  return { base: "pic_toko", tokoId: Number.isFinite(tokoId) ? tokoId : null };
+// Helper: cari ID toko dari nama toko (label di TokoLabels)
+function findTokoIdByName(name) {
+  if (!name) return null;
+  const hit = Object.entries(TOKO_LABELS).find(
+    ([, label]) => (label || "").toLowerCase().trim() === String(name).toLowerCase().trim()
+  );
+  return hit ? Number(hit[0]) : null;
+}
+function findTokoNameById(id) {
+  return TOKO_LABELS[id] || null;
+}
+
+// Helper: sanitasi nama toko untuk embedded di role "pic_toko<NAME>"
+function sanitizeForRole(name) {
+  return String(name || "")
+    .replace(/\s+/g, "") // hapus spasi
+    .replace(/[^A-Za-z0-9_]/g, ""); // hanya huruf/angka/underscore
+}
+
+// Parse role + toko (nama) menjadi struktur normal
+function rolePieces(role, tokoName) {
+  if ((role || "").toLowerCase() === "superadmin") {
+    return { base: "superadmin", tokoName: null, tokoId: null };
+  }
+  // Bentuk role lama/baru: "pic_toko" + <NAMA TOKO TANPA SPASI>
+  // Contoh data Anda: pic_tokoCILANGKAP, pic_tokoKONTEN_LIVE, dll.
+  const m = /^pic_toko(.+)$/i.exec(role || "");
+  const embeddedName = m ? m[1] : null;
+
+  // Prioritaskan nama toko dari field "toko" kalau ada (karena itu nama resmi)
+  const name = (tokoName && String(tokoName).trim())
+    ? String(tokoName).trim()
+    : embeddedName
+    ? embeddedName.replace(/_/g, " ")
+    : null;
+
+  const tokoId = findTokoIdByName(name);
+  return { base: "pic_toko", tokoName: name, tokoId };
 }
 
 export default function UserManagement() {
-  // ====== sumber data users (localStorage -> default) ======
+  // ====== sumber data users (localStorage -> default dari file UserManagementRole.jsx) ======
   const [users, setUsers] = useState(() => {
     try {
       const ls = JSON.parse(localStorage.getItem("users"));
@@ -35,7 +69,7 @@ export default function UserManagement() {
     username: "",
     password: "",
     roleBase: "pic_toko", // "superadmin" | "pic_toko"
-    tokoId: tokoEntries[0]?.id ?? 1, // aktif saat roleBase = pic_toko
+    tokoId: tokoEntries[0]?.id ?? null, // aktif saat roleBase = pic_toko
   });
 
   const resetForm = () =>
@@ -44,7 +78,7 @@ export default function UserManagement() {
       username: "",
       password: "",
       roleBase: "pic_toko",
-      tokoId: tokoEntries[0]?.id ?? 1,
+      tokoId: tokoEntries[0]?.id ?? null,
     });
 
   const addUser = () => {
@@ -55,31 +89,37 @@ export default function UserManagement() {
       alert("Username & Password wajib diisi.");
       return;
     }
-    if (users.some((u) => u.username === username)) {
+    if (users.some((u) => (u.username || "").trim().toLowerCase() === username.toLowerCase())) {
       alert("Username sudah dipakai.");
       return;
     }
 
-    const final =
-      form.roleBase === "superadmin"
-        ? {
-            username,
-            password,
-            role: "superadmin",
-            toko: null,
-            name: form.name?.trim() || username,
-          }
-        : {
-            username,
-            password,
-            role: `pic_toko${form.tokoId}`,
-            toko: form.tokoId,
-            name: form.name?.trim() || username,
-          };
+    let final;
+    if (form.roleBase === "superadmin") {
+      final = {
+        username,
+        password,
+        role: "superadmin",
+        toko: "ALL",
+        nama: form.name?.trim() || username,
+        name: form.name?.trim() || username,
+      };
+    } else {
+      const tokoId = form.tokoId ?? tokoEntries[0]?.id ?? null;
+      const tokoName = findTokoNameById(tokoId) || "";
+      const role = `pic_toko${sanitizeForRole(tokoName)}`;
+      final = {
+        username,
+        password,
+        role,
+        toko: tokoName, // simpan nama toko (kompatibel dgn data master)
+        nama: form.name?.trim() || username,
+        name: form.name?.trim() || username,
+      };
+    }
 
     setUsers((prev) => [final, ...prev]);
     resetForm();
-    // reset halaman ke pertama setelah tambah
     setPage(1);
   };
 
@@ -92,8 +132,9 @@ export default function UserManagement() {
     setEditing(u.username);
     setDraft({
       ...u,
+      name: u.name || u.nama || "",
       roleBase: base,
-      tokoId: tokoId,
+      tokoId: tokoId, // mungkin null jika nama toko tidak dikenal
     });
   };
 
@@ -110,20 +151,31 @@ export default function UserManagement() {
       return;
     }
 
-    const final =
-      draft.roleBase === "superadmin"
-        ? {
-            ...draft,
-            role: "superadmin",
-            toko: null,
-          }
-        : {
-            ...draft,
-            role: `pic_toko${draft.tokoId}`,
-            toko: draft.tokoId,
-          };
+    let final;
+    if (draft.roleBase === "superadmin") {
+      final = {
+        ...draft,
+        role: "superadmin",
+        toko: "ALL",
+        nama: draft.name || draft.nama || "",
+      };
+    } else {
+      const useTokoId =
+        draft.tokoId ??
+        rolePieces(draft.role, draft.toko).tokoId ??
+        tokoEntries[0]?.id ??
+        null;
+      const tokoName = findTokoNameById(useTokoId) || (draft.toko || "");
+      const role = `pic_toko${sanitizeForRole(tokoName)}`;
+      final = {
+        ...draft,
+        role,
+        toko: tokoName,
+        nama: draft.name || draft.nama || "",
+      };
+    }
 
-    // username dipakai sbg primary key & tidak diubah pada edit
+    // username dianggap PK dan tidak diubah pada edit
     setUsers((prev) => prev.map((u) => (u.username === editing ? final : u)));
     cancelEdit();
   };
@@ -132,7 +184,7 @@ export default function UserManagement() {
   const del = (username) => {
     if (!window.confirm("Hapus user ini?")) return;
     setUsers((prev) => prev.filter((u) => u.username !== username));
-    // jika di halaman terakhir dan setelah hapus data habis, mundurkan halaman
+    // mundurkan halaman bila perlu
     setTimeout(() => {
       setPage((p) => {
         const newCount = filteredUsers.length - 1;
@@ -147,7 +199,6 @@ export default function UserManagement() {
   const [filterRole, setFilterRole] = useState("all"); // all | superadmin | pic_toko
   const [filterTokoId, setFilterTokoId] = useState("all"); // "all" | number
 
-  // Reset ke page 1 saat filter berubah
   useEffect(() => {
     setPage(1);
   }, [searchTerm, filterRole, filterTokoId]);
@@ -157,33 +208,35 @@ export default function UserManagement() {
 
     return users
       .filter((u) => {
+        const rp = rolePieces(u.role, u.toko);
+
         // Filter role
         if (filterRole !== "all") {
-          if (filterRole === "superadmin" && u.role !== "superadmin") return false;
-          if (filterRole === "pic_toko" && !/^pic_toko\d+$/i.test(u.role || "")) return false;
+          if (filterRole === "superadmin" && rp.base !== "superadmin") return false;
+          if (filterRole === "pic_toko" && rp.base !== "pic_toko") return false;
         }
         // Filter toko
         if (filterTokoId !== "all") {
-          const { tokoId } = rolePieces(u.role, u.toko);
-          if (tokoId !== Number(filterTokoId)) return false;
+          if (rp.base !== "pic_toko") return false;
+          if (rp.tokoId !== Number(filterTokoId)) return false;
         }
-        // Search (username, name, role, label toko)
+        // Search (username, name/nama, role, label toko, toko name)
         if (!s) return true;
-        const { tokoId } = rolePieces(u.role, u.toko);
-        const tokoLabel = tokoId ? TOKO_LABELS[tokoId] || `Toko ${tokoId}` : "—";
+        const tokoLabel = rp.tokoId ? TOKO_LABELS[rp.tokoId] : (rp.tokoName || "—");
         const haystack = [
           u.username,
-          u.name,
+          u.name || u.nama,
           u.role,
-          String(tokoId || ""),
+          u.toko,
           tokoLabel,
+          rp.tokoName,
         ]
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
         return haystack.includes(s);
       })
-      .sort((a, b) => a.username.localeCompare(b.username));
+      .sort((a, b) => (a.username || "").localeCompare(b.username || ""));
   }, [users, searchTerm, filterRole, filterTokoId]);
 
   // ====== PAGINATION ======
@@ -195,7 +248,6 @@ export default function UserManagement() {
     [filteredUsers.length, pageSize]
   );
 
-  // Clamp page ketika filteredUsers atau pageSize berubah
   useEffect(() => {
     setPage((p) => Math.min(p, totalPages));
   }, [totalPages]);
@@ -209,7 +261,8 @@ export default function UserManagement() {
   const countByRole = useMemo(() => {
     const acc = { superadmin: 0, pic_toko: 0 };
     for (const u of users) {
-      if (u.role === "superadmin") acc.superadmin += 1;
+      const rp = rolePieces(u.role, u.toko);
+      if (rp.base === "superadmin") acc.superadmin += 1;
       else acc.pic_toko += 1;
     }
     return acc;
@@ -220,7 +273,8 @@ export default function UserManagement() {
       <div>
         <h1 className="text-2xl md:text-3xl font-bold">User Management</h1>
         <p className="text-slate-600">
-          Kelola pengguna, password, role, dan akses toko. Nama toko memakai label dari TokoLabels.js.
+          Kelola pengguna, password, role, dan akses toko. Data awal diambil dari <code>src/data/UserManagementRole.jsx</code>.
+          Role <code>pic_toko</code> memakai <em>nama toko</em> (mis. <code>pic_tokoCILANGKAP</code>).
         </p>
       </div>
 
@@ -276,8 +330,10 @@ export default function UserManagement() {
               <label className="text-xs text-slate-600">Toko (pic_toko)</label>
               <select
                 className="w-full border rounded px-2 py-1"
-                value={form.tokoId}
-                onChange={(e) => setForm({ ...form, tokoId: Number(e.target.value) })}
+                value={form.tokoId ?? ""}
+                onChange={(e) =>
+                  setForm({ ...form, tokoId: Number(e.target.value) })
+                }
               >
                 {tokoEntries.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -330,7 +386,9 @@ export default function UserManagement() {
             <select
               className="w-full border rounded px-2 py-1"
               value={filterTokoId}
-              onChange={(e) => setFilterTokoId(e.target.value === "all" ? "all" : Number(e.target.value))}
+              onChange={(e) =>
+                setFilterTokoId(e.target.value === "all" ? "all" : Number(e.target.value))
+              }
             >
               <option value="all">Semua Toko</option>
               {tokoEntries.map((t) => (
@@ -392,9 +450,10 @@ export default function UserManagement() {
                   const tokoId =
                     roleBase === "superadmin"
                       ? null
-                      : (draft.tokoId ?? rolePieces(draft.role, draft.toko).tokoId) ??
-                        tokoEntries[0]?.id ??
-                        1;
+                      : (draft.tokoId ??
+                         rolePieces(draft.role, draft.toko).tokoId ??
+                         tokoEntries[0]?.id ??
+                         null);
 
                   return (
                     <tr key={u.username} className="border-b last:border-0 bg-slate-50/50">
@@ -413,7 +472,7 @@ export default function UserManagement() {
                       <td className="px-3 py-2">
                         <input
                           className="border rounded px-2 py-1"
-                          value={draft.name || ""}
+                          value={draft.name || draft.nama || ""}
                           onChange={(e) =>
                             setDraft((d) => ({ ...d, name: e.target.value }))
                           }
@@ -439,7 +498,10 @@ export default function UserManagement() {
                             className="border rounded px-2 py-1"
                             value={tokoId ?? ""}
                             onChange={(e) =>
-                              setDraft((d) => ({ ...d, tokoId: Number(e.target.value) }))
+                              setDraft((d) => ({
+                                ...d,
+                                tokoId: Number(e.target.value),
+                              }))
                             }
                           >
                             {tokoEntries.map((t) => (
@@ -470,11 +532,13 @@ export default function UserManagement() {
                   );
                 }
 
-                const { base, tokoId } = rolePieces(u.role, u.toko);
+                const rp = rolePieces(u.role, u.toko);
                 const tokoLabel =
-                  base === "superadmin"
+                  rp.base === "superadmin"
                     ? "—"
-                    : TOKO_LABELS[tokoId] || (tokoId ? `Toko ${tokoId}` : "—");
+                    : rp.tokoId
+                    ? TOKO_LABELS[rp.tokoId]
+                    : (rp.tokoName || u.toko || "—");
 
                 return (
                   <tr key={u.username} className="border-b last:border-0">
@@ -484,8 +548,8 @@ export default function UserManagement() {
                     <td className="px-3 py-2">
                       <span className="font-mono">{u.password}</span>
                     </td>
-                    <td className="px-3 py-2">{u.name || "—"}</td>
-                    <td className="px-3 py-2">{base}</td>
+                    <td className="px-3 py-2">{u.name || u.nama || "—"}</td>
+                    <td className="px-3 py-2">{rp.base}</td>
                     <td className="px-3 py-2">{tokoLabel}</td>
                     <td className="px-3 py-2">
                       <div className="flex gap-2">
@@ -547,9 +611,10 @@ export default function UserManagement() {
         </div>
 
         <p className="mt-3 text-xs text-slate-500">
-          Data user disimpan pada <code>localStorage.users</code> dan digunakan untuk proses Login.
-          Role <code>pic_toko</code> disimpan sebagai <code>pic_toko&lt;id&gt;</code> (mis. <code>pic_toko3</code>).
-          Nama toko ditampilkan dari <code>TokoLabels.js</code>. Gunakan filter & pagination untuk mempermudah pencarian.
+          Data user dibaca dari <code>src/data/UserManagementRole.jsx</code> (lalu disalin ke{" "}
+          <code>localStorage.users</code> agar bisa diedit/tambah/hapus). Role{" "}
+          <code>pic_toko</code> memakai nama toko, mis. <code>pic_tokoCILANGKAP</code>. Nama toko untuk dropdown
+          tetap diambil dari <code>TokoLabels.js</code>.
         </p>
       </div>
     </div>
