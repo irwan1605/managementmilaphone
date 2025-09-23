@@ -527,23 +527,25 @@ export default function InputPenjualan({ user }) {
 
   /* ================= Render ================= */
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
+      <div className="flex items-start justify-between gap-3 flex-col md:flex-row">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Input Penjualan Pusat</h1>
-          <p className="text-slate-600">Form input + tabel ringkas. Tenor aktif & bunga otomatis.</p>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Input Penjualan Pusat</h1>
+          <p className="text-slate-600 mt-1">
+            Form input + tabel ringkas dan Tenor aktif
+          </p>
         </div>
-
-        <div className="flex items-center gap-2">
+  
+        <div className="flex flex-wrap items-center gap-2">
           {/* Pilih toko (lock jika pic_toko) */}
           <div className="flex items-center gap-2">
             <span className="text-sm text-slate-600">Toko:</span>
             {user?.role?.startsWith("pic_toko") ? (
-              <span className="px-3 py-2 border rounded bg-slate-50 text-sm">{tokoName}</span>
+              <span className="px-3 py-2 border rounded-lg bg-slate-50 text-sm">{tokoName}</span>
             ) : (
               <select
-                className="border rounded px-3 py-2 text-sm"
+                className="border rounded-lg px-3 py-2 text-sm"
                 value={tokoId}
                 onChange={(e) => setTokoId(Number(e.target.value))}
               >
@@ -555,7 +557,7 @@ export default function InputPenjualan({ user }) {
               </select>
             )}
           </div>
-
+  
           {/* Import/Export */}
           <input
             ref={fileInputRef}
@@ -581,68 +583,68 @@ export default function InputPenjualan({ user }) {
           </button>
         </div>
       </div>
-
+  
       {/* PO Penjualan */}
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border bg-white p-4 md:p-5 shadow-sm">
         <h2 className="text-lg font-semibold mb-3">PO PENJUALAN</h2>
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
           <div>
             <label className="text-xs text-slate-600">Tanggal</label>
             <input
               type="date"
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.tanggal}
               onChange={(e) => setForm({ ...form, tanggal: e.target.value })}
             />
           </div>
-
-          <div className="md:col-span-2">
+  
+          <div className="lg:col-span-2">
             <label className="text-xs text-slate-600">Akun (Pelanggan)</label>
             <input
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.akunPelanggan}
               onChange={(e) => setForm({ ...form, akunPelanggan: e.target.value })}
             />
           </div>
-
+  
           <div>
             <label className="text-xs text-slate-600">No HP/WA</label>
             <input
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.noHp}
               onChange={(e) => setForm({ ...form, noHp: e.target.value })}
             />
           </div>
-
+  
           <div>
             <label className="text-xs text-slate-600">No. Kontrak/Order</label>
             <input
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.noKontrak}
               onChange={(e) => setForm({ ...form, noKontrak: e.target.value })}
             />
           </div>
-
-          <div className="md:col-span-2">
+  
+          <div className="lg:col-span-2">
             <label className="text-xs text-slate-600">Note</label>
             <input
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.note}
               onChange={(e) => setForm({ ...form, note: e.target.value })}
             />
           </div>
         </div>
       </div>
-
+  
       {/* Produk & Harga */}
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border bg-white p-4 md:p-5 shadow-sm">
         <h2 className="text-lg font-semibold mb-3">PRODUK & HARGA</h2>
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-          <div className="md:col-span-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+          <div className="lg:col-span-2">
             <label className="text-xs text-slate-600">Brand & Produk</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <select
-                className="border rounded px-2 py-1"
+                className="border rounded-lg px-2 py-2"
                 value={form.brand}
                 onChange={(e) => onChangeBrand(e.target.value)}
               >
@@ -653,7 +655,7 @@ export default function InputPenjualan({ user }) {
                 ))}
               </select>
               <select
-                className="border rounded px-2 py-1"
+                className="border rounded-lg px-2 py-2"
                 value={form.produk}
                 onChange={(e) => onChangeProduk(e.target.value)}
               >
@@ -666,11 +668,11 @@ export default function InputPenjualan({ user }) {
               </select>
             </div>
           </div>
-
+  
           <div>
             <label className="text-xs text-slate-600">Warna</label>
             <select
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.warna}
               onChange={(e) => setForm({ ...form, warna: e.target.value })}
             >
@@ -682,11 +684,11 @@ export default function InputPenjualan({ user }) {
               ))}
             </select>
           </div>
-
+  
           <div>
             <label className="text-xs text-slate-600">Baterai</label>
             <select
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.baterai}
               onChange={(e) => setForm({ ...form, baterai: e.target.value })}
             >
@@ -698,11 +700,11 @@ export default function InputPenjualan({ user }) {
               ))}
             </select>
           </div>
-
+  
           <div>
             <label className="text-xs text-slate-600">Charger</label>
             <select
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.charger}
               onChange={(e) => setForm({ ...form, charger: e.target.value })}
             >
@@ -714,22 +716,22 @@ export default function InputPenjualan({ user }) {
               ))}
             </select>
           </div>
-
+  
           <div>
             <label className="text-xs text-slate-600">Qty</label>
             <input
               type="number"
               min={1}
-              className="w-full border rounded px-2 py-1 text-right"
+              className="w-full border rounded-lg px-2 py-2 text-right"
               value={form.qty}
               onChange={(e) => setForm({ ...form, qty: toNum(e.target.value) })}
             />
           </div>
-
+  
           <div>
             <label className="text-xs text-slate-600">Harga Dipakai</label>
             <select
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.hargaType}
               onChange={(e) => setForm({ ...form, hargaType: e.target.value })}
             >
@@ -737,13 +739,13 @@ export default function InputPenjualan({ user }) {
               <option value="SRP">SRP</option>
             </select>
           </div>
-
+  
           <div>
             <label className="text-xs text-slate-600">SRP</label>
             <input
               type="number"
               min={0}
-              className="w-full border rounded px-2 py-1 text-right"
+              className="w-full border rounded-lg px-2 py-2 text-right"
               value={form.srp}
               onChange={(e) => setForm({ ...form, srp: toNum(e.target.value) })}
             />
@@ -753,7 +755,7 @@ export default function InputPenjualan({ user }) {
             <input
               type="number"
               min={0}
-              className="w-full border rounded px-2 py-1 text-right"
+              className="w-full border rounded-lg px-2 py-2 text-right"
               value={form.grosir}
               onChange={(e) => setForm({ ...form, grosir: toNum(e.target.value) })}
             />
@@ -762,15 +764,15 @@ export default function InputPenjualan({ user }) {
             <label className="text-xs text-slate-600">Harga (auto)</label>
             <input
               readOnly
-              className="w-full border rounded px-2 py-1 bg-slate-50 text-right"
+              className="w-full border rounded-lg px-2 py-2 bg-slate-50 text-right"
               value={form.harga}
             />
           </div>
-
+  
           <div>
             <label className="text-xs text-slate-600">Kategori Harga</label>
             <select
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.priceCategory}
               onChange={(e) => setForm({ ...form, priceCategory: e.target.value })}
             >
@@ -781,11 +783,11 @@ export default function InputPenjualan({ user }) {
               ))}
             </select>
           </div>
-
-          <div className="md:col-span-2">
+  
+          <div className="lg:col-span-2">
             <label className="text-xs text-slate-600">Bundling MP Protect</label>
             <select
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.mpProtect}
               onChange={(e) => setForm({ ...form, mpProtect: e.target.value })}
             >
@@ -799,26 +801,26 @@ export default function InputPenjualan({ user }) {
           </div>
         </div>
       </div>
-
+  
       {/* PAYMENT */}
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border bg-white p-4 md:p-5 shadow-sm">
         <h2 className="text-lg font-semibold mb-3">PAYMENT</h2>
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-          <div className="md:col-span-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+          <div className="lg:col-span-2">
             <label className="text-xs text-slate-600">Pembayaran Melalui</label>
             <input
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               placeholder="Nama Leasing/Bank"
               value={form.leasingName}
               onChange={(e) => setForm({ ...form, leasingName: e.target.value })}
             />
           </div>
-
-          <div className="md:col-span-2">
+  
+          <div className="lg:col-span-2">
             <label className="text-xs text-slate-600">Payment & Harga</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <select
-                className="border rounded px-2 py-1"
+                className="border rounded-lg px-2 py-2"
                 value={form.paymentMethod}
                 onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
               >
@@ -831,18 +833,18 @@ export default function InputPenjualan({ user }) {
               <input
                 type="number"
                 min={0}
-                className="border rounded px-2 py-1 text-right"
+                className="border rounded-lg px-2 py-2 text-right"
                 value={form.harga}
                 onChange={(e) => setForm({ ...form, harga: toNum(e.target.value) })}
               />
             </div>
           </div>
-
+  
           <div>
             <label className="text-xs text-slate-600">MDR % (auto)</label>
             <input
               readOnly
-              className="w-full border rounded px-2 py-1 bg-slate-50 text-right"
+              className="w-full border rounded-lg px-2 py-2 bg-slate-50 text-right"
               value={Number(
                 getMdr({ method: form.paymentMethod, toko: tokoName, brand: form.brand }) || 0
               ).toFixed(2)}
@@ -852,15 +854,15 @@ export default function InputPenjualan({ user }) {
             <label className="text-xs text-slate-600">MDR Fee (auto)</label>
             <input
               readOnly
-              className="w-full border rounded px-2 py-1 bg-slate-50 text-right"
+              className="w-full border rounded-lg px-2 py-2 bg-slate-50 text-right"
               value={formatCurrency(fin.mdrFee)}
             />
           </div>
-
+  
           <div>
             <label className="text-xs text-slate-600">Tenor</label>
             <select
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.tenor}
               onChange={(e) => setForm({ ...form, tenor: toNum(e.target.value) })}
             >
@@ -872,22 +874,15 @@ export default function InputPenjualan({ user }) {
               ))}
             </select>
           </div>
-
-          <div>
-            <label className="text-xs text-slate-600">Bunga % (auto dari tenor)</label>
-            <input
-              readOnly
-              className="w-full border rounded px-2 py-1 bg-slate-50 text-right"
-              value={toNum(form.bunga).toFixed(2)}
-            />
-          </div>
-
+  
+         
+  
           <div>
             <label className="text-xs text-slate-600">DP (Utama)</label>
             <input
               type="number"
               min={0}
-              className="w-full border rounded px-2 py-1 text-right"
+              className="w-full border rounded-lg px-2 py-2 text-right"
               value={form.dp}
               onChange={(e) => setForm({ ...form, dp: toNum(e.target.value) })}
             />
@@ -897,7 +892,7 @@ export default function InputPenjualan({ user }) {
             <input
               type="number"
               min={0}
-              className="w-full border rounded px-2 py-1 text-right"
+              className="w-full border rounded-lg px-2 py-2 text-right"
               value={form.dpMerchant}
               onChange={(e) => setForm({ ...form, dpMerchant: toNum(e.target.value) })}
             />
@@ -907,7 +902,7 @@ export default function InputPenjualan({ user }) {
             <input
               type="number"
               min={0}
-              className="w-full border rounded px-2 py-1 text-right"
+              className="w-full border rounded-lg px-2 py-2 text-right"
               value={form.dpToko}
               onChange={(e) => setForm({ ...form, dpToko: toNum(e.target.value) })}
             />
@@ -917,50 +912,50 @@ export default function InputPenjualan({ user }) {
             <input
               type="number"
               min={0}
-              className="w-full border rounded px-2 py-1 text-right"
+              className="w-full border rounded-lg px-2 py-2 text-right"
               value={form.dpTalangan}
               onChange={(e) => setForm({ ...form, dpTalangan: toNum(e.target.value) })}
             />
           </div>
         </div>
       </div>
-
+  
       {/* Addons & Identifikasi */}
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border bg-white p-4 md:p-5 shadow-sm">
         <h2 className="text-lg font-semibold mb-3">ADDONS & IDENTIFIKASI</h2>
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-          <div className="md:col-span-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+          <div className="lg:col-span-3">
             <label className="text-xs text-slate-600">IMEI/No Dinamo/Rangka</label>
             <input
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.imei1}
               onChange={(e) => setForm({ ...form, imei1: e.target.value })}
             />
           </div>
-          <div className="md:col-span-3">
+          <div className="lg:col-span-3">
             <label className="text-xs text-slate-600">IMEI/No Dinamo/Rangka 2</label>
             <input
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.imei2}
               onChange={(e) => setForm({ ...form, imei2: e.target.value })}
             />
           </div>
-
+  
           <div>
             <label className="text-xs text-slate-600">Ongkir/HS Card</label>
             <input
               type="number"
               min={0}
-              className="w-full border rounded px-2 py-1 text-right"
+              className="w-full border rounded-lg px-2 py-2 text-right"
               value={form.ongkirHsCard}
               onChange={(e) => setForm({ ...form, ongkirHsCard: toNum(e.target.value) })}
             />
           </div>
-
-          <div className="md:col-span-2">
+  
+          <div className="lg:col-span-2">
             <label className="text-xs text-slate-600">Aksesoris/Sparepart 1</label>
             <input
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.aksesoris1Desc}
               onChange={(e) => setForm({ ...form, aksesoris1Desc: e.target.value })}
             />
@@ -970,16 +965,16 @@ export default function InputPenjualan({ user }) {
             <input
               type="number"
               min={0}
-              className="w-full border rounded px-2 py-1 text-right"
+              className="w-full border rounded-lg px-2 py-2 text-right"
               value={form.aksesoris1Amount}
               onChange={(e) => setForm({ ...form, aksesoris1Amount: toNum(e.target.value) })}
             />
           </div>
-
-          <div className="md:col-span-2">
+  
+          <div className="lg:col-span-2">
             <label className="text-xs text-slate-600">Aksesoris/Sparepart 2</label>
             <input
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.aksesoris2Desc}
               onChange={(e) => setForm({ ...form, aksesoris2Desc: e.target.value })}
             />
@@ -989,29 +984,27 @@ export default function InputPenjualan({ user }) {
             <input
               type="number"
               min={0}
-              className="w-full border rounded px-2 py-1 text-right"
+              className="w-full border rounded-lg px-2 py-2 text-right"
               value={form.aksesoris2Amount}
               onChange={(e) => setForm({ ...form, aksesoris2Amount: toNum(e.target.value) })}
             />
           </div>
-
-          <div className="md:col-span-2">
+  
+          <div className="lg:col-span-2">
             <label className="text-xs text-slate-600">Bundling MP Protect (Rp)</label>
             <input
               type="number"
               min={0}
-              className="w-full border rounded px-2 py-1 text-right"
+              className="w-full border rounded-lg px-2 py-2 text-right"
               value={form.bundlingProtectAmount}
-              onChange={(e) =>
-                setForm({ ...form, bundlingProtectAmount: toNum(e.target.value) })
-              }
+              onChange={(e) => setForm({ ...form, bundlingProtectAmount: toNum(e.target.value) })}
             />
           </div>
-
+  
           <div>
             <label className="text-xs text-slate-600">FREE/Kelengkapan 1</label>
             <input
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.free1}
               onChange={(e) => setForm({ ...form, free1: e.target.value })}
             />
@@ -1019,7 +1012,7 @@ export default function InputPenjualan({ user }) {
           <div>
             <label className="text-xs text-slate-600">FREE/Kelengkapan 2</label>
             <input
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.free2}
               onChange={(e) => setForm({ ...form, free2: e.target.value })}
             />
@@ -1027,18 +1020,18 @@ export default function InputPenjualan({ user }) {
           <div>
             <label className="text-xs text-slate-600">FREE/Kelengkapan 3</label>
             <input
-              className="w-full border rounded px-2 py-1"
+              className="w-full border rounded-lg px-2 py-2"
               value={form.free3}
               onChange={(e) => setForm({ ...form, free3: e.target.value })}
             />
           </div>
         </div>
       </div>
-
-      {/* RINGKASAN */}
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+  
+      {/* Ringkasan */}
+      <div className="rounded-2xl border bg-white p-4 md:p-5 shadow-sm">
         <h2 className="text-lg font-semibold mb-3">RINGKASAN</h2>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <div className="rounded-xl border p-3">
             <div className="text-xs text-slate-500">Subtotal</div>
             <div className="text-lg font-semibold">{formatCurrency(fin.subtotal)}</div>
@@ -1060,7 +1053,7 @@ export default function InputPenjualan({ user }) {
             <div className="text-lg font-semibold">{formatCurrency(fin.grandTotal)}</div>
           </div>
         </div>
-
+  
         <div className="mt-3">
           <button
             onClick={addRow}
@@ -1070,239 +1063,381 @@ export default function InputPenjualan({ user }) {
           </button>
         </div>
       </div>
-
-      {/* TABEL */}
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
-        <h2 className="text-lg font-semibold mb-3">Data Input</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-[1800px] text-sm">
-            <thead className="bg-slate-50 text-slate-600">
-              <tr>
-                <th className="px-3 py-2 text-left">Tanggal</th>
-                <th className="px-3 py-2 text-left">Toko</th>
-                <th className="px-3 py-2 text-left">Brand</th>
-                <th className="px-3 py-2 text-left">Produk</th>
-                <th className="px-3 py-2 text-left">Warna</th>
-                <th className="px-3 py-2 text-right">Qty</th>
-                <th className="px-3 py-2 text-left">HargaDipakai</th>
-                <th className="px-3 py-2 text-right">Harga</th>
-                <th className="px-3 py-2 text-left">Payment</th>
-                <th className="px-3 py-2 text-right">Tenor</th>
-                <th className="px-3 py-2 text-right">Bunga %</th>
-                <th className="px-3 py-2 text-right">Cicilan/bln</th>
-                <th className="px-3 py-2 text-right">Grand Total</th>
-                <th className="px-3 py-2 text-left">IMEI/No Rangka</th>
-                <th className="px-3 py-2 text-left">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const f = computeFinancials(row, tokoName);
-                const isEditing = editingId === row.id;
-
-                if (isEditing && editDraft) {
-                  const fe = computeFinancials(editDraft, tokoName);
+  
+      {/* Data Input - Responsive */}
+      <div className="rounded-2xl border bg-white p-4 md:p-5 shadow-sm">
+        <h2 className="text-lg font-semibold mb-4">Data Input</h2>
+  
+        {/* Kartu (mobile & tablet) */}
+        <div className="grid gap-3 lg:hidden">
+          {rows.length === 0 && (
+            <div className="text-center text-slate-500 py-6">Belum ada data input.</div>
+          )}
+          {rows.map((row) => {
+            const f = computeFinancials(row, tokoName);
+            const isEditing = editingId === row.id;
+  
+            if (isEditing && editDraft) {
+              const fe = computeFinancials(editDraft, tokoName);
+              return (
+                <div key={row.id} className="rounded-xl border p-3 bg-slate-50/70 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      className="border rounded-lg px-2 py-2"
+                      value={editDraft.tanggal}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, tanggal: e.target.value }))}
+                    />
+                    <input
+                      className="border rounded-lg px-2 py-2"
+                      value={editDraft.tokoRef}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, tokoRef: e.target.value }))}
+                    />
+                    <input
+                      className="border rounded-lg px-2 py-2"
+                      value={editDraft.brand}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, brand: e.target.value }))}
+                    />
+                    <input
+                      className="border rounded-lg px-2 py-2"
+                      value={editDraft.produk}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, produk: e.target.value }))}
+                    />
+                    <input
+                      className="border rounded-lg px-2 py-2"
+                      value={editDraft.warna}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, warna: e.target.value }))}
+                    />
+                    <input
+                      type="number"
+                      className="border rounded-lg px-2 py-2 text-right"
+                      value={editDraft.qty}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, qty: toNum(e.target.value) }))}
+                    />
+                    <select
+                      className="border rounded-lg px-2 py-2"
+                      value={editDraft.hargaType}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, hargaType: e.target.value }))}
+                    >
+                      <option value="GROSIR">GROSIR</option>
+                      <option value="SRP">SRP</option>
+                    </select>
+                    <input
+                      type="number"
+                      className="border rounded-lg px-2 py-2 text-right"
+                      value={editDraft.harga}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, harga: toNum(e.target.value) }))}
+                    />
+                    <select
+                      className="border rounded-lg px-2 py-2"
+                      value={editDraft.paymentMethod}
+                      onChange={(e) =>
+                        setEditDraft((d) => ({ ...d, paymentMethod: e.target.value }))
+                      }
+                    >
+                      {PAYMENT_METHODS.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      className="border rounded-lg px-2 py-2 text-right"
+                      value={editDraft.tenor}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, tenor: toNum(e.target.value) }))}
+                    />
+                    <input
+                      type="number"
+                      className="border rounded-lg px-2 py-2 text-right"
+                      value={editDraft.bunga}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, bunga: toNum(e.target.value) }))}
+                    />
+                  </div>
+  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-xs text-slate-500">Cicilan/bln</div>
+                    <div className="text-right font-semibold">{formatCurrency(fe.cicilan)}</div>
+                    <div className="text-xs text-slate-500">Grand Total</div>
+                    <div className="text-right font-semibold">{formatCurrency(fe.grandTotal)}</div>
+                  </div>
+  
+                  <input
+                    className="border rounded-lg px-2 py-2 w-full"
+                    placeholder="IMEI/No Rangka"
+                    value={editDraft.imei1}
+                    onChange={(e) => setEditDraft((d) => ({ ...d, imei1: e.target.value }))}
+                  />
+  
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={saveEdit}
+                      className="px-3 py-2 text-xs rounded-lg bg-green-600 text-white hover:bg-green-700"
+                    >
+                      Simpan
+                    </button>
+                    <button
+                      onClick={cancelEdit}
+                      className="px-3 py-2 text-xs rounded-lg bg-slate-100 hover:bg-slate-200"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+  
+            return (
+              <div key={row.id} className="rounded-xl border p-3 space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-medium">{row.produk || row.brand}</div>
+                  <div className="text-xs text-slate-500">{row.tanggal}</div>
+                </div>
+                <div className="text-sm text-slate-600">{row.tokoRef} • {row.brand} • {row.warna || "-"}</div>
+  
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm mt-2">
+                  <div>Qty</div>
+                  <div className="text-right">{row.qty}</div>
+                  <div>Harga</div>
+                  <div className="text-right">{formatCurrency(row.harga)}</div>
+                  <div>Payment</div>
+                  <div className="text-right">{row.paymentMethod}</div>
+                  <div>Cicilan/bln</div>
+                  <div className="text-right">{formatCurrency(f.cicilan)}</div>
+                  <div>Grand Total</div>
+                  <div className="text-right font-semibold">{formatCurrency(f.grandTotal)}</div>
+                  <div>IMEI/No Rangka</div>
+                  <div className="text-right">{row.imei1 || "-"}</div>
+                </div>
+  
+                <div className="flex gap-2 justify-end pt-2">
+                  <button
+                    onClick={() => beginEdit(row)}
+                    className="px-3 py-2 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => deleteRow(row.id)}
+                    className="px-3 py-2 text-xs rounded-lg bg-red-600 text-white hover:bg-red-700"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+  
+        {/* Tabel (desktop) */}
+        <div className="hidden lg:block">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-slate-50 text-slate-600">
+                <tr>
+                  <th className="px-3 py-2 text-left">Tanggal</th>
+                  <th className="px-3 py-2 text-left">Toko</th>
+                  <th className="px-3 py-2 text-left">Brand</th>
+                  <th className="px-3 py-2 text-left">Produk</th>
+                  <th className="px-3 py-2 text-left">Warna</th>
+                  <th className="px-3 py-2 text-right">Qty</th>
+                  <th className="px-3 py-2 text-left">HargaDipakai</th>
+                  <th className="px-3 py-2 text-right">Harga</th>
+                  <th className="px-3 py-2 text-left">Payment</th>
+                  <th className="px-3 py-2 text-right">Tenor</th>
+                  <th className="px-3 py-2 text-right">Cicilan/bln</th>
+                  <th className="px-3 py-2 text-right">Grand Total</th>
+                  <th className="px-3 py-2 text-left">IMEI/No Rangka</th>
+                  <th className="px-3 py-2 text-left">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => {
+                  const f = computeFinancials(row, tokoName);
+                  const isEditing = editingId === row.id;
+  
+                  if (isEditing && editDraft) {
+                    const fe = computeFinancials(editDraft, tokoName);
+                    return (
+                      <tr key={row.id} className="border-b last:border-0 bg-slate-50">
+                        <td className="px-3 py-2">
+                          <input
+                            type="date"
+                            className="border rounded-lg px-2 py-1"
+                            value={editDraft.tanggal}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, tanggal: e.target.value }))}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            className="border rounded-lg px-2 py-1 w-36"
+                            value={editDraft.tokoRef}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, tokoRef: e.target.value }))}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            className="border rounded-lg px-2 py-1 w-32"
+                            value={editDraft.brand}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, brand: e.target.value }))}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            className="border rounded-lg px-2 py-1 w-32"
+                            value={editDraft.produk}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, produk: e.target.value }))}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            className="border rounded-lg px-2 py-1 w-24"
+                            value={editDraft.warna}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, warna: e.target.value }))}
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <input
+                            type="number"
+                            className="border rounded-lg px-2 py-1 text-right w-20"
+                            value={editDraft.qty}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, qty: toNum(e.target.value) }))}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <select
+                            className="border rounded-lg px-2 py-1"
+                            value={editDraft.hargaType}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, hargaType: e.target.value }))}
+                          >
+                            <option value="GROSIR">GROSIR</option>
+                            <option value="SRP">SRP</option>
+                          </select>
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <input
+                            type="number"
+                            className="border rounded-lg px-2 py-1 text-right w-24"
+                            value={editDraft.harga}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, harga: toNum(e.target.value) }))}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <select
+                            className="border rounded-lg px-2 py-1"
+                            value={editDraft.paymentMethod}
+                            onChange={(e) =>
+                              setEditDraft((d) => ({ ...d, paymentMethod: e.target.value }))
+                            }
+                          >
+                            {PAYMENT_METHODS.map((m) => (
+                              <option key={m} value={m}>
+                                {m}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <input
+                            type="number"
+                            className="border rounded-lg px-2 py-1 text-right w-16"
+                            value={editDraft.tenor}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, tenor: toNum(e.target.value) }))}
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <input
+                            type="number"
+                            className="border rounded-lg px-2 py-1 text-right w-20"
+                            value={editDraft.bunga}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, bunga: toNum(e.target.value) }))}
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(fe.cicilan)}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(fe.grandTotal)}</td>
+                        <td className="px-3 py-2">
+                          <input
+                            className="border rounded-lg px-2 py-1 w-48"
+                            value={editDraft.imei1}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, imei1: e.target.value }))}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={saveEdit}
+                              className="px-3 py-2 text-xs rounded-lg bg-green-600 text-white hover:bg-green-700"
+                            >
+                              Simpan
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              className="px-3 py-2 text-xs rounded-lg bg-slate-100 hover:bg-slate-200"
+                            >
+                              Batal
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }
+  
                   return (
-                    <tr key={row.id} className="border-b last:border-0 bg-slate-50">
-                      <td className="px-3 py-2">
-                        <input
-                          type="date"
-                          className="border rounded px-2 py-1"
-                          value={editDraft.tanggal}
-                          onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, tanggal: e.target.value }))
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          className="border rounded px-2 py-1 w-36"
-                          value={editDraft.tokoRef}
-                          onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, tokoRef: e.target.value }))
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          className="border rounded px-2 py-1 w-32"
-                          value={editDraft.brand}
-                          onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, brand: e.target.value }))
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          className="border rounded px-2 py-1 w-32"
-                          value={editDraft.produk}
-                          onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, produk: e.target.value }))
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          className="border rounded px-2 py-1 w-24"
-                          value={editDraft.warna}
-                          onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, warna: e.target.value }))
-                          }
-                        />
+                    <tr key={row.id} className="border-b last:border-0">
+                      <td className="px-3 py-2">{row.tanggal}</td>
+                      <td className="px-3 py-2">{row.tokoRef}</td>
+                      <td className="px-3 py-2">{row.brand}</td>
+                      <td className="px-3 py-2">{row.produk}</td>
+                      <td className="px-3 py-2">{row.warna}</td>
+                      <td className="px-3 py-2 text-right">{row.qty}</td>
+                      <td className="px-3 py-2">{row.hargaType}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(row.harga)}</td>
+                      <td className="px-3 py-2">{row.paymentMethod}</td>
+                      <td className="px-3 py-2 text-right">{row.tenor || 0}</td>
+                      <td className="px-3 py-2 text-right">{toNum(row.bunga).toFixed(2)}</td>
+                      <td className="px-3 py-2 text-right">
+                        {formatCurrency(computeFinancials(row, tokoName).cicilan)}
                       </td>
                       <td className="px-3 py-2 text-right">
-                        <input
-                          type="number"
-                          className="border rounded px-2 py-1 text-right w-20"
-                          value={editDraft.qty}
-                          onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, qty: toNum(e.target.value) }))
-                          }
-                        />
+                        {formatCurrency(computeFinancials(row, tokoName).grandTotal)}
                       </td>
-                      <td className="px-3 py-2">
-                        <select
-                          className="border rounded px-2 py-1"
-                          value={editDraft.hargaType}
-                          onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, hargaType: e.target.value }))
-                          }
-                        >
-                          <option value="GROSIR">GROSIR</option>
-                          <option value="SRP">SRP</option>
-                        </select>
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        <input
-                          type="number"
-                          className="border rounded px-2 py-1 text-right w-24"
-                          value={editDraft.harga}
-                          onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, harga: toNum(e.target.value) }))
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <select
-                          className="border rounded px-2 py-1"
-                          value={editDraft.paymentMethod}
-                          onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, paymentMethod: e.target.value }))
-                          }
-                        >
-                          {PAYMENT_METHODS.map((m) => (
-                            <option key={m} value={m}>
-                              {m}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        <input
-                          type="number"
-                          className="border rounded px-2 py-1 text-right w-16"
-                          value={editDraft.tenor}
-                          onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, tenor: toNum(e.target.value) }))
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        <input
-                          type="number"
-                          className="border rounded px-2 py-1 text-right w-20"
-                          value={editDraft.bunga}
-                          onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, bunga: toNum(e.target.value) }))
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(fe.cicilan)}</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(fe.grandTotal)}</td>
-                      <td className="px-3 py-2">
-                        <input
-                          className="border rounded px-2 py-1 w-48"
-                          value={editDraft.imei1}
-                          onChange={(e) =>
-                            setEditDraft((d) => ({ ...d, imei1: e.target.value }))
-                          }
-                        />
-                      </td>
+                      <td className="px-3 py-2">{row.imei1 || "-"}</td>
                       <td className="px-3 py-2">
                         <div className="flex gap-2">
                           <button
-                            onClick={saveEdit}
-                            className="px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700"
+                            onClick={() => beginEdit(row)}
+                            className="px-3 py-2 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700"
                           >
-                            Simpan
+                            Edit
                           </button>
                           <button
-                            onClick={cancelEdit}
-                            className="px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200"
+                            onClick={() => deleteRow(row.id)}
+                            className="px-3 py-2 text-xs rounded-lg bg-red-600 text-white hover:bg-red-700"
                           >
-                            Batal
+                            Hapus
                           </button>
                         </div>
                       </td>
                     </tr>
                   );
-                }
-
-                return (
-                  <tr key={row.id} className="border-b last:border-0">
-                    <td className="px-3 py-2">{row.tanggal}</td>
-                    <td className="px-3 py-2">{row.tokoRef}</td>
-                    <td className="px-3 py-2">{row.brand}</td>
-                    <td className="px-3 py-2">{row.produk}</td>
-                    <td className="px-3 py-2">{row.warna}</td>
-                    <td className="px-3 py-2 text-right">{row.qty}</td>
-                    <td className="px-3 py-2">{row.hargaType}</td>
-                    <td className="px-3 py-2 text-right">{formatCurrency(row.harga)}</td>
-                    <td className="px-3 py-2">{row.paymentMethod}</td>
-                    <td className="px-3 py-2 text-right">{row.tenor || 0}</td>
-                    <td className="px-3 py-2 text-right">{toNum(row.bunga).toFixed(2)}</td>
-                    <td className="px-3 py-2 text-right">
-                      {formatCurrency(computeFinancials(row, tokoName).cicilan)}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {formatCurrency(computeFinancials(row, tokoName).grandTotal)}
-                    </td>
-                    <td className="px-3 py-2">{row.imei1 || "-"}</td>
-                    <td className="px-3 py-2">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => beginEdit(row)}
-                          className="px-2 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => deleteRow(row.id)}
-                          className="px-2 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700"
-                        >
-                          Hapus
-                        </button>
-                      </div>
+                })}
+                {rows.length === 0 && (
+                  <tr>
+                    <td colSpan={15} className="px-3 py-6 text-center text-slate-500">
+                      Belum ada data input.
                     </td>
                   </tr>
-                );
-              })}
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={15} className="px-3 py-6 text-center text-slate-500">
-                    Belum ada data input.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-
+  
       <p className="text-xs text-slate-500">
         Tenor aktif & bunga% otomatis menggunakan helper <code>getBungaByTenor</code>. MDR% otomatis
         dari <code>getMdr</code>. Harga auto mengikuti katalog <code>MasterDataHargaPenjualan</code>.
       </p>
     </div>
   );
-}
+}  
