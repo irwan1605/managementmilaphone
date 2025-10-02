@@ -23,7 +23,7 @@ import { BsGraphUp, BsTagsFill, BsFileEarmarkText } from "react-icons/bs";
 import { MdBuild } from "react-icons/md";
 import { FiBox } from "react-icons/fi";
 
-// ✅ Satu sumber label toko
+// Labels toko
 import TOKO_LABELS, { ALL_TOKO_IDS } from "../data/TokoLabels";
 
 const Sidebar = ({ role, toko, onLogout }) => {
@@ -45,6 +45,12 @@ const Sidebar = ({ role, toko, onLogout }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const panelRef = useRef(null);
 
+  // Refs untuk kontainer scroll (mobile & desktop) + list wrapper
+  const scrollRefMobile = useRef(null);
+  const scrollRefDesktop = useRef(null);
+  const listRefMobile = useRef(null);
+  const listRefDesktop = useRef(null);
+
   // Close on ESC
   useEffect(() => {
     const onKey = (e) => {
@@ -54,7 +60,7 @@ const Sidebar = ({ role, toko, onLogout }) => {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Trap focus (sederhana)
+  // Trap focus (sederhana) saat mobile open
   useEffect(() => {
     if (!mobileOpen || !panelRef.current) return;
     const first = panelRef.current.querySelector("a,button,input,select");
@@ -72,14 +78,96 @@ const Sidebar = ({ role, toko, onLogout }) => {
     }
   };
 
+  // ===== Efek Glow Dinamis + IntersectionObserver (mobile & desktop) =====
+  useEffect(() => {
+    // utility untuk setup pada satu kontainer scroll
+    const setupScrollGlow = (el, listEl) => {
+      if (!el || !listEl) return () => {};
+
+      let raf = null;
+
+      const applyGlow = () => {
+        const max = Math.max(1, el.scrollHeight - el.clientHeight);
+        const top = el.scrollTop;
+        const t = Math.min(1, Math.max(0, top / max)); // 0..1
+
+        // Opacity glow: muncul jika bisa di-scroll ke atas/bawah
+        const topOpacity = top > 0 ? 0.35 : 0.0;
+        const bottomOpacity = top < max ? 0.35 : 0.0;
+
+        // Warna hue dinamis: biru→ungu (atas), teal→biru (bawah), mengikuti t
+        const hueTop = 200 + 100 * t; // 200..300
+        const hueBottom = 170 + 50 * t; // 170..220
+
+        el.style.setProperty("--glowTopOpacity", String(topOpacity));
+        el.style.setProperty("--glowBottomOpacity", String(bottomOpacity));
+        el.style.setProperty("--glowHueTop", String(hueTop));
+        el.style.setProperty("--glowHueBottom", String(hueBottom));
+      };
+
+      const onScroll = () => {
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          raf = null;
+          applyGlow();
+        });
+      };
+
+      const ro = new ResizeObserver(() => applyGlow());
+      el.addEventListener("scroll", onScroll, { passive: true });
+      ro.observe(el);
+      applyGlow();
+
+      // IntersectionObserver untuk highlight item “di zona fokus”
+      const io = new IntersectionObserver(
+        (entries) => {
+          listEl.querySelectorAll(".in-focus").forEach((n) => n.classList.remove("in-focus"));
+          const best = entries.reduce(
+            (acc, e) => (e.intersectionRatio > (acc?.intersectionRatio ?? 0) ? e : acc),
+            null
+          );
+          if (best?.isIntersecting) {
+            const item = best.target.closest("a,button,li");
+            item?.classList?.add("in-focus");
+          }
+        },
+        {
+          root: el,
+          threshold: [0.25, 0.5, 0.75],
+          rootMargin: "-25% 0% -25% 0%",
+        }
+      );
+
+      listEl.querySelectorAll("a, button").forEach((n) => io.observe(n));
+
+      return () => {
+        el.removeEventListener("scroll", onScroll);
+        ro.disconnect();
+        io.disconnect();
+        if (raf) cancelAnimationFrame(raf);
+      };
+    };
+
+    const cleanups = [];
+
+    // Setup untuk desktop
+    if (scrollRefDesktop.current && listRefDesktop.current) {
+      cleanups.push(setupScrollGlow(scrollRefDesktop.current, listRefDesktop.current));
+    }
+    // Setup untuk mobile
+    if (scrollRefMobile.current && listRefMobile.current) {
+      cleanups.push(setupScrollGlow(scrollRefMobile.current, listRefMobile.current));
+    }
+
+    return () => cleanups.forEach((fn) => fn && fn());
+  }, []);
+
   // ===== Sidebar content (dipakai mobile & desktop) =====
   const SidebarBody = () => (
     <>
       <img src="/logoMMT.png" alt="Logo" className="logo mb-1" />
-      <div className="font-bold p-2">
-        <h2 className="text-gray-200 text-center text-sm">
-          PT. MILA MEDIA TELEKOMUNIKASI
-        </h2>
+      <div className="font-bold p-1">
+        <h2 className="text-gray-200 text-center text-sm">PT. MILA MEDIA TELEKOMUNIKASI</h2>
       </div>
 
       <nav className="mt-2 font-bold">
@@ -299,10 +387,7 @@ const Sidebar = ({ role, toko, onLogout }) => {
               <FaMoneyCheckAlt className="text-xl" />
               <span className="ml-2">KEUANGAN</span>
             </Link>
-            <Link
-              to="/Finance-report-monthly"
-              className="flex items-center p-3 hover:bg-blue-500"
-            >
+            <Link to="/Finance-report-monthly" className="flex items-center p-3 hover:bg-blue-500">
               <FaMoneyCheckAlt className="text-xl" />
               <span className="ml-2">REKAP KEUANGAN</span>
             </Link>
@@ -501,22 +586,27 @@ const Sidebar = ({ role, toko, onLogout }) => {
         <div className="bg-blue-700 w-64 h-full text-white flex flex-col">
           <div className="flex items-center justify-between p-3 border-b border-white/10">
             <span className="font-semibold">Navigasi</span>
-            <button
-              className="close-btn"
-              onClick={() => setMobileOpen(false)}
-              aria-label="Tutup menu"
-            >
+            <button className="close-btn" onClick={() => setMobileOpen(false)} aria-label="Tutup menu">
               ✕
             </button>
           </div>
-          <SidebarBody />
+
+          {/* scrollable */}
+          <div ref={scrollRefMobile} className="custom-scroll overflow-y-auto flex-1">
+            <div ref={listRefMobile} className="px-0">
+              <SidebarBody />
+            </div>
+          </div>
         </div>
       </aside>
 
       {/* SIDEBAR (Desktop) */}
-      <aside className="hidden lg:flex bg-blue-700 w-64 h-screen sticky top-0 text-white overflow-y-auto z-40">
-        <div className="flex flex-col w-full">
-          <SidebarBody />
+      <aside className="hidden lg:flex bg-blue-700 w-64 h-screen sticky top-0 text-white z-40">
+        {/* scrollable */}
+        <div ref={scrollRefDesktop} className="custom-scroll overflow-y-auto flex flex-col w-full">
+          <div ref={listRefDesktop}>
+            <SidebarBody />
+          </div>
         </div>
       </aside>
     </>
