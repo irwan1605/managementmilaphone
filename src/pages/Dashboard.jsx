@@ -167,10 +167,7 @@ export default function Dashboard({ user }) {
   const brandIndex = useMemo(() => getBrandIndex() || [], []);
   const totalVarianKatalog = useMemo(() => {
     try {
-      return brandIndex.reduce(
-        (sum, b) => sum + (b?.products?.length || 0),
-        0
-      );
+      return brandIndex.reduce((sum, b) => sum + (b?.products?.length || 0), 0);
     } catch {
       return 0;
     }
@@ -306,6 +303,44 @@ export default function Dashboard({ user }) {
     };
   }, [brandIndex]);
 
+  /* ==== opsi chart modern & ringkas ==== */
+  const commonOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: {
+        position: "top",
+        labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true },
+      },
+      tooltip: {
+        backgroundColor: "rgba(15,23,42,0.9)",
+        titleColor: "#fff",
+        bodyColor: "#e5e7eb",
+        borderWidth: 0,
+        padding: 12,
+        displayColors: true,
+        callbacks: {
+          label: (ctx) => {
+            const v = ctx.parsed?.y ?? ctx.parsed ?? 0;
+            return ` ${ctx.dataset.label}: ${v.toLocaleString("id-ID")}`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        grid: { color: "rgba(148,163,184,0.15)" },
+        ticks: { color: "#475569" },
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: "rgba(148,163,184,0.15)" },
+        ticks: { stepSize: 1, precision: 0, color: "#475569" },
+      },
+    },
+  };
+
   /* ================== Export Rekap Stok ================== */
   const handleExportRekapStok = () => {
     const sheet = storeSummaries.map((s) => ({
@@ -325,7 +360,9 @@ export default function Dashboard({ user }) {
   /* ================== Setoran Keuangan (bulan ini) ================== */
   const { setoranCards, grandTotalBulanIni } = useMemo(() => {
     const now = new Date();
-    const ymKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const ymKey = `${now.getFullYear()}-${String(
+      now.getMonth() + 1
+    ).padStart(2, "0")}`;
     const rekap = loadFinanceRekapFromLS(); // array
 
     // Filter bulan ini
@@ -360,7 +397,7 @@ export default function Dashboard({ user }) {
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard Pusat</h1>
+          <h1 className="text-3xl font-bold">Dashboard Pusa Mila Phone</h1>
           <p className="text-slate-600">
             Selamat datang, {user?.username || user?.name || "User"} (Role:{" "}
             {user?.role || "-"})
@@ -435,14 +472,12 @@ export default function Dashboard({ user }) {
           <h2 className="text-lg font-semibold">Setoran Keuangan — Bulan Ini</h2>
           <div className="text-sm text-slate-600">
             Total Setoran Bulan Ini:{" "}
-            <span className="font-semibold">
-              {formatCurrency(grandTotalBulanIni)}
-            </span>
+            <span className="font-semibold">{formatCurrency(grandTotalBulanIni)}</span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {setoranCards.map((c, i) => (
+          {setoranCards.map((c) => (
             <button
               key={c.id}
               onClick={() => {
@@ -456,9 +491,7 @@ export default function Dashboard({ user }) {
                 <div className="text-left">
                   <div className="text-sm text-slate-600">{c.tokoName}</div>
                   <div className="text-xl font-bold">{formatCurrency(c.total)}</div>
-                  <div className="text-[11px] text-slate-500 mt-1">
-                    Bulan berjalan
-                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">Bulan berjalan</div>
                 </div>
                 <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-sky-500 to-violet-500 opacity-80 group-hover:opacity-100 transition shadow-lg" />
               </div>
@@ -486,7 +519,7 @@ export default function Dashboard({ user }) {
           </div>
         </div>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm mt-6">
+        <div className="rounded-xl border bg-white p-4 shadow-sm mt-6 overflow-x-auto">
           <table className="min-w-[720px] text-sm">
             <thead className="bg-slate-50 text-slate-600">
               <tr>
@@ -501,15 +534,11 @@ export default function Dashboard({ user }) {
             <tbody>
               {storeSummaries.map((s) => (
                 <tr key={s.tokoName} className="border-b last:border-0">
-                  <td className="px-3 py-2">
-                    {TOKO_LABELS?.[s.id] || s.tokoName}
-                  </td>
+                  <td className="px-3 py-2">{TOKO_LABELS?.[s.id] || s.tokoName}</td>
                   <td className="px-3 py-2 text-right">{s.hp}</td>
                   <td className="px-3 py-2 text-right">{s.molis}</td>
                   <td className="px-3 py-2 text-right">{s.acc}</td>
-                  <td className="px-3 py-2 text-right font-semibold">
-                    {s.total}
-                  </td>
+                  <td className="px-3 py-2 text-right font-semibold">{s.total}</td>
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap gap-2">
                       {s.isCentral ? (
@@ -536,8 +565,7 @@ export default function Dashboard({ user }) {
                       ) : (
                         <button
                           onClick={() => {
-                            const fallbackId =
-                              (s.id ?? getTokoIdByName(s.tokoName)) ?? 1;
+                            const fallbackId = (s.id ?? getTokoIdByName(s.tokoName)) ?? 1;
                             navigate(`/toko/${fallbackId}`);
                           }}
                           className="px-2 py-1 text-xs rounded bg-indigo-600 text-white hover:bg-indigo-700"
@@ -552,10 +580,7 @@ export default function Dashboard({ user }) {
               ))}
               {storeSummaries.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="px-3 py-6 text-center text-slate-500"
-                  >
+                  <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
                     Belum ada data stok.
                   </td>
                 </tr>
@@ -565,74 +590,86 @@ export default function Dashboard({ user }) {
         </div>
       </div>
 
-      {/* Grafik */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 p-6">
-        {/* Bar Chart */}
-        <div className="bg-white p-4 rounded shadow-lg">
-          <h2 className="text-xl font-semibold mb-4">
-            Stok per Toko (Bar Chart)
-          </h2>
-          <Bar
-            data={barData}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-              plugins: { legend: { position: "top" } },
-            }}
-            height={300}
-          />
-        </div>
+      {/* ====== Grafik: modern, dinamis, tidak memanjang ====== */}
+      <div className="mt-6">
+        <h2 className="text-lg font-semibold mb-3">Grafik Ringkas</h2>
 
-        {/* Line Chart */}
-        <div className="bg-white p-4 rounded shadow-lg">
-          <h2 className="text-xl font-semibold mb-4">
-            Varian per Brand (Line Chart)
-          </h2>
-          <Line
-            data={lineData}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { position: "top" } },
-              scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-            }}
-            height={300}
-          />
-        </div>
+        {/* gunakan auto-fit agar responsif dan rapi */}
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+          {/* Bar */}
+          <div className="rounded-2xl border bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <div className="text-sm text-slate-500">Visualisasi</div>
+                <div className="font-semibold">Stok per Toko</div>
+              </div>
+            </div>
+            <div className="relative h-72 md:h-80">
+              <Bar data={barData} options={commonOptions} />
+            </div>
+          </div>
 
-        {/* Pie Chart */}
-        <div className="bg-white p-4 rounded shadow-lg">
-          <h2 className="text-xl font-semibold mb-4">
-            Distribusi Stok antar Toko (Pie Chart)
-          </h2>
-          <Pie
-            data={pieData}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { position: "right" } },
-            }}
-            height={300}
-          />
-        </div>
+          {/* Line */}
+          <div className="rounded-2xl border bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <div className="text-sm text-slate-500">Katalog</div>
+                <div className="font-semibold">Varian per Brand</div>
+              </div>
+            </div>
+            <div className="relative h-72 md:h-80">
+              <Line
+                data={lineData}
+                options={{
+                  ...commonOptions,
+                  elements: { line: { borderWidth: 2 } },
+                }}
+              />
+            </div>
+          </div>
 
-        {/* Doughnut Chart */}
-        <div className="bg-white p-4 rounded shadow-lg">
-          <h2 className="text-xl font-semibold mb-4">
-            Komposisi Kategori (Doughnut Chart)
-          </h2>
-          <Doughnut
-            data={doughnutData}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { position: "right" } },
-            }}
-            height={300}
-          />
+          {/* Pie */}
+          <div className="rounded-2xl border bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <div className="text-sm text-slate-500">Distribusi</div>
+                <div className="font-semibold">Share Stok antar Toko</div>
+              </div>
+            </div>
+            <div className="relative h-72 md:h-80">
+              <Pie
+                data={pieData}
+                options={{
+                  ...commonOptions,
+                  scales: undefined, // pie tidak butuh axes
+                  plugins: { ...commonOptions.plugins, legend: { position: "bottom" } },
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Doughnut */}
+          <div className="rounded-2xl border bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <div className="text-sm text-slate-500">Komposisi</div>
+                <div className="font-semibold">Kategori Global</div>
+              </div>
+            </div>
+            <div className="relative h-72 md:h-80">
+              <Doughnut
+                data={doughnutData}
+                options={{
+                  ...commonOptions,
+                  scales: undefined,
+                  plugins: { ...commonOptions.plugins, legend: { position: "bottom" } },
+                }}
+              />
+            </div>
+          </div>
         </div>
       </div>
+      {/* ====== /Grafik ====== */}
     </div>
   );
 }
