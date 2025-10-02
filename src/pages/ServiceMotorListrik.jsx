@@ -303,7 +303,7 @@ export default function ServiceMotorListrik({ user }) {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Service Motor Listrik</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Service Motor Listrik Mila Phone</h1>
           <p className="text-slate-600">
             Alur service antar toko. {isSuperAdmin || isAdmin ? "Mode pusat (lihat semua toko)." : "Mode PIC (toko sendiri)."}
           </p>

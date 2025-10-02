@@ -93,7 +93,7 @@ const KeuanganMenu = () => {
 
   return (
     <div className={`p-6 ${isFullScreen ? 'fixed inset-0 bg-white z-50 overflow-auto' : ''}`}>
-      <h2 className="text-2xl font-bold mb-4">Laporan Keuangan</h2>
+      <h2 className="text-2xl font-bold mb-4">Laporan Keuangan Mila Phone</h2>
 
       {/* Form Input */}
       <div className="mb-4">

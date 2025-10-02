@@ -46,7 +46,7 @@ const Login = ({ onLogin, users }) => {
   return (
     <div className="flex h-screen items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-xl shadow-lg w-96">
-        <h2 className="text-xl font-bold mb-4 text-center">Login</h2>
+        <h2 className="text-xl font-bold mb-4 text-center">Login Mila Phone</h2>
         {error && <p className="text-red-500 mb-3 text-center">{error}</p>}
 
         <input

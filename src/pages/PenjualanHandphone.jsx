@@ -430,7 +430,7 @@ export default function PenjualanHandphone() {
       {/* Header + Back */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Penjualan Handphone — Pusat</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Penjualan Handphone — Pusat Mila Phone</h1>
           <p className="text-slate-600">
             Monitor & input lintas toko. Harga/MDR/bunga otomatis dari folder <code>data</code>.
           </p>

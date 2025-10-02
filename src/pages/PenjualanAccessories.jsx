@@ -361,7 +361,7 @@ export default function PenjualanAccessories() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Penjualan Accessories — Pusat</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Penjualan Accessories — Pusat Mila Phone</h1>
           <p className="text-slate-600">Tambah/edit/hapus, filter, export. MDR/bunga/harga otomatis dari data.</p>
         </div>
         <div className="flex items-center gap-2">

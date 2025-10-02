@@ -320,7 +320,7 @@ export default function PembelianProdukPusat({ user }) {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Pembelian Produk Pusat</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Pembelian Produk Pusat Mila Phone</h1>
           <p className="text-slate-600">
             Alur pembelian antar vendor untuk pusat. Admin & Superadmin dapat menambah, mengubah, dan menghapus.
           </p>

@@ -50,7 +50,7 @@ const StrukPenjualan = () => {
   return (
     <div className="p-6">
       {!reviewMode ? (
-        <div className="space-y-6">
+        <div className="space-y-6"> <h1 className="text-xl font-bold mb-4">Struk Faktur Penjualan Mila Phone</h1>
           {/* FORM DATA PENJUALAN */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <input

@@ -23,7 +23,7 @@ const Invoice = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-xl font-bold mb-4">Invoice</h1>
+      <h1 className="text-xl font-bold mb-4">Invoice Mila Phone</h1>
 
       {/* Form Input */}
       <div className="grid grid-cols-2 gap-4 mb-6">

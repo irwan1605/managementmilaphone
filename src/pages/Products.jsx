@@ -46,7 +46,7 @@ const Products = () => {
 
   return (
     <div className="bg-white shadow-md rounded-lg p-6">
-      <h1 className="text-2xl font-bold mb-4">Daftar Produk</h1>
+      <h1 className="text-2xl font-bold mb-4">Daftar Produk MILA PHONE</h1>
 
       {/* Tombol untuk download dan upload */}
       <div className="mb-4">

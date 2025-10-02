@@ -271,7 +271,7 @@ export default function UserManagement() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold">User Management</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">User Management Mila Phone</h1>
         <p className="text-slate-600">
           Kelola pengguna, password, role, dan akses toko. Data awal diambil dari <code>src/data/UserManagementRole.jsx</code>.
           Role <code>pic_toko</code> memakai <em>nama toko</em> (mis. <code>pic_tokoCILANGKAP</code>).

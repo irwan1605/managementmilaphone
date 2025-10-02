@@ -767,7 +767,7 @@ export default function DashboardToko({ user, tokoId, initialData = [] }) {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold">Dashboard Toko — {tokoName}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold">Dashboard Toko Mila Phone— {tokoName}</h1>
             <p className="text-slate-600">
               PO Penjualan, Payment, SRP/Kredit & Grosir. Dropdown & harga otomatis dari folder data.
             </p>

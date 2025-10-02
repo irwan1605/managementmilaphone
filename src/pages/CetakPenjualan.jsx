@@ -28,7 +28,7 @@ const CetakPenjualan = () => {
       {/* Modal untuk Review Cetak */}
       {isFullScreen && (
         <div className="fixed inset-0 bg-white z-50 p-6">
-          <h2 className="text-2xl font-bold mb-4">Cetak Data Penjualan</h2>
+          <h2 className="text-2xl font-bold mb-4">Cetak Data Penjualan Mila Phone</h2>
           <table className="table-auto w-full mb-4 border">
             <thead>
               <tr className="bg-gray-200">

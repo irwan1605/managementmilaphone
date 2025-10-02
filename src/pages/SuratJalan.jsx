@@ -23,7 +23,7 @@ const SuratJalan = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-xl font-bold mb-4">Surat Jalan Pengiriman/Returt Barang</h1>
+      <h1 className="text-xl font-bold mb-4">Surat Jalan Pengiriman/Returt Barang Mila Phone</h1>
 
       {/* Form Input */}
       <div className="grid grid-cols-2 gap-4 mb-6">

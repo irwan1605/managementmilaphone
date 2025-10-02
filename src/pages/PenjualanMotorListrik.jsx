@@ -451,7 +451,7 @@ export default function PenjualanMotorListrik() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold">
-            Penjualan Motor Listrik — Pusat
+            Penjualan Motor Listrik — Pusat Mila Phone
           </h1>
           <p className="text-slate-600">
             Tambah/edit/hapus, filter, export. MDR/bunga/harga otomatis dari

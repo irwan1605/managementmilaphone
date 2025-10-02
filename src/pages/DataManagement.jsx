@@ -33,9 +33,13 @@ const LS_MASTER_PRICE_CATEGORIES = "MASTER_PRICE_CATEGORIES";
 const toNumber = (v) =>
   v === "" || v == null ? 0 : Number(String(v).replace(/[^\d.-]/g, "")) || 0;
 const fmt = (n) =>
-  (Number(n) || 0).toLocaleString("id-ID", { style: "currency", currency: "IDR" });
+  (Number(n) || 0).toLocaleString("id-ID", {
+    style: "currency",
+    currency: "IDR",
+  });
 
-const nonEmpty = (v) => v !== undefined && v !== null && String(v).trim() !== "";
+const nonEmpty = (v) =>
+  v !== undefined && v !== null && String(v).trim() !== "";
 const uniq = (arr) => Array.from(new Set(arr || []));
 
 const defaultRefs = {
@@ -64,17 +68,26 @@ function setLS(key, value) {
 /* ===== Parser helpers (Excel) ===== */
 const normHeaders = (row) =>
   Object.fromEntries(
-    Object.entries(row || {}).map(([k, v]) => [String(k || "").toLowerCase().trim(), v])
+    Object.entries(row || {}).map(([k, v]) => [
+      String(k || "")
+        .toLowerCase()
+        .trim(),
+      v,
+    ])
   );
 
-const slugSheet = (n) => String(n || "").toLowerCase().replace(/\s+/g, "");
+const slugSheet = (n) =>
+  String(n || "")
+    .toLowerCase()
+    .replace(/\s+/g, "");
 
 function parseSheetHarga(json) {
   const rows = (json || []).map(normHeaders);
   const out = [];
   for (const r of rows) {
     const brand = r["brand"] ?? r["merk"] ?? r["merek"];
-    const name = r["type"] ?? r["tipe"] ?? r["produk"] ?? r["name"] ?? r["nama"];
+    const name =
+      r["type"] ?? r["tipe"] ?? r["produk"] ?? r["name"] ?? r["nama"];
     if (!nonEmpty(brand) || !nonEmpty(name)) continue;
     const warna = r["warna"] ?? r["color"];
     const srp = toNumber(r["srp"] ?? r["harga srp"]);
@@ -103,7 +116,8 @@ function parseSheetKatalog(json) {
   const map = new Map(); // brand -> name -> {warna:Set, baterai:Set, charger:Set}
   for (const r of rows) {
     const brand = r["brand"] ?? r["merk"] ?? r["merek"];
-    const name = r["type"] ?? r["tipe"] ?? r["produk"] ?? r["name"] ?? r["nama"];
+    const name =
+      r["type"] ?? r["tipe"] ?? r["produk"] ?? r["name"] ?? r["nama"];
     if (!nonEmpty(brand) || !nonEmpty(name)) continue;
     const warna = r["warna"] ?? r["color"];
     const baterai = r["baterai"] ?? r["battery"];
@@ -112,7 +126,8 @@ function parseSheetKatalog(json) {
     const p = String(name).trim();
     if (!map.has(b)) map.set(b, new Map());
     const pm = map.get(b);
-    if (!pm.has(p)) pm.set(p, { warna: new Set(), baterai: new Set(), charger: new Set() });
+    if (!pm.has(p))
+      pm.set(p, { warna: new Set(), baterai: new Set(), charger: new Set() });
     const rec = pm.get(p);
     if (nonEmpty(warna)) rec.warna.add(String(warna).trim());
     if (nonEmpty(baterai)) rec.baterai.add(String(baterai).trim());
@@ -141,7 +156,12 @@ function deriveCatalogFromMaster(masterHarga) {
     if (!nonEmpty(brand) || !nonEmpty(name)) continue;
     if (!map.has(brand)) map.set(brand, new Map());
     const pm = map.get(brand);
-    if (!pm.has(name)) pm.set(name, { warna: new Set(), baterai: new Set(), charger: new Set() });
+    if (!pm.has(name))
+      pm.set(name, {
+        warna: new Set(),
+        baterai: new Set(),
+        charger: new Set(),
+      });
     const rec = pm.get(name);
     if (nonEmpty(warna)) rec.warna.add(String(warna).trim());
     if (nonEmpty(baterai)) rec.baterai.add(String(baterai).trim());
@@ -197,7 +217,12 @@ function parseSheetMdr(json) {
       const brand = r["brand"] ?? r["merk"] ?? r["merek"] ?? "";
       const mdrPct = toNumber(r["mdr"] ?? r["mdr%"] ?? r["fee%"]);
       if (!nonEmpty(method)) return null;
-      return { method: String(method).trim(), toko: String(toko).trim(), brand: String(brand).trim(), mdrPct };
+      return {
+        method: String(method).trim(),
+        toko: String(toko).trim(),
+        brand: String(brand).trim(),
+        mdrPct,
+      };
     })
     .filter(Boolean);
 }
@@ -212,7 +237,13 @@ function parseSheetTenor(json) {
       const brand = r["brand"] ?? r["merk"] ?? r["merek"] ?? "";
       const toko = r["toko"] ?? r["nama toko"] ?? "";
       if (!tenor) return null;
-      return { tenor, bungaPct, method: String(method).trim(), brand: String(brand).trim(), toko: String(toko).trim() };
+      return {
+        tenor,
+        bungaPct,
+        method: String(method).trim(),
+        brand: String(brand).trim(),
+        toko: String(toko).trim(),
+      };
     })
     .filter(Boolean);
 }
@@ -224,7 +255,9 @@ function parseSheetToko(json) {
     const id = r["id"] ?? r["kode"] ?? r["no"];
     const name = r["toko"] ?? r["nama toko"] ?? r["name"] ?? r["nama"];
     if (!nonEmpty(name)) continue;
-    const key = nonEmpty(id) ? String(id).trim() : String(Object.keys(out).length + 1);
+    const key = nonEmpty(id)
+      ? String(id).trim()
+      : String(Object.keys(out).length + 1);
     out[key] = String(name).trim().toUpperCase();
   }
   return out;
@@ -249,7 +282,9 @@ export default function DataManagement() {
   /* ------- Master Harga ------- */
   const [master, setMaster] = useState(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_MASTER_PRICE) || "null");
+      const saved = JSON.parse(
+        localStorage.getItem(STORAGE_MASTER_PRICE) || "null"
+      );
       return Array.isArray(saved) && saved.length
         ? saved
         : (HARGA_PENJUALAN || []).map((x) => ({
@@ -281,14 +316,24 @@ export default function DataManagement() {
   /* ------- Refs (lists) ------- */
   const [refs, setRefs] = useState(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_REF_LISTS) || "null");
+      const saved = JSON.parse(
+        localStorage.getItem(STORAGE_REF_LISTS) || "null"
+      );
       const base = saved || defaultRefs;
       // jaga minimal default list ada isinya
       return {
-        paymentMethods: base.paymentMethods?.length ? base.paymentMethods : PAYMENT_METHODS,
-        priceCategories: base.priceCategories?.length ? base.priceCategories : PRICE_CATEGORIES,
-        mpProtectOptions: base.mpProtectOptions?.length ? base.mpProtectOptions : MP_PROTECT_OPTIONS,
-        tenorOptions: base.tenorOptions?.length ? base.tenorOptions : TENOR_OPTIONS,
+        paymentMethods: base.paymentMethods?.length
+          ? base.paymentMethods
+          : PAYMENT_METHODS,
+        priceCategories: base.priceCategories?.length
+          ? base.priceCategories
+          : PRICE_CATEGORIES,
+        mpProtectOptions: base.mpProtectOptions?.length
+          ? base.mpProtectOptions
+          : MP_PROTECT_OPTIONS,
+        tenorOptions: base.tenorOptions?.length
+          ? base.tenorOptions
+          : TENOR_OPTIONS,
         brandList: base.brandList?.length ? base.brandList : BRAND_LIST,
         productList: base.productList?.length ? base.productList : PRODUCT_LIST,
         warnaList: base.warnaList?.length ? base.warnaList : WARNA_LIST,
@@ -300,8 +345,12 @@ export default function DataManagement() {
 
   /* ------- Data Organisasi & Rules ------- */
   const [sales, setSales] = useState(() => getLS(LS_MASTER_SALES_BY_TOKO, []));
-  const [mdrRules, setMdrRules] = useState(() => getLS(LS_MASTER_MDR_RULES, []));
-  const [tenorRules, setTenorRules] = useState(() => getLS(LS_MASTER_TENOR_RULES, []));
+  const [mdrRules, setMdrRules] = useState(() =>
+    getLS(LS_MASTER_MDR_RULES, [])
+  );
+  const [tenorRules, setTenorRules] = useState(() =>
+    getLS(LS_MASTER_TENOR_RULES, [])
+  );
   const [tokoLabels, setTokoLabels] = useState(() =>
     getLS(LS_MASTER_TOKO_LABELS, TOKO_LABELS_DEFAULT || {})
   );
@@ -453,40 +502,85 @@ export default function DataManagement() {
     setRefs((r) => ({ ...r, [key]: uniq([...(r[key] || []), value]) }));
   };
   const deleteRef = (key, value) => {
-    setRefs((r) => ({ ...r, [key]: (r[key] || []).filter((x) => x !== value) }));
+    setRefs((r) => ({
+      ...r,
+      [key]: (r[key] || []).filter((x) => x !== value),
+    }));
   };
 
   /* ------- Sales / MDR / Tenor / Toko editor (ringkas) ------- */
-  const [newSales, setNewSales] = useState({ toko: "", store: "", name: "", nik: "", sh: "", sl: "", tuyul: "" });
+  const [newSales, setNewSales] = useState({
+    toko: "",
+    store: "",
+    name: "",
+    nik: "",
+    sh: "",
+    sl: "",
+    tuyul: "",
+  });
   const addSales = () => {
     if (!nonEmpty(newSales.name)) return;
     setSales((prev) => [newSales, ...prev]);
-    setNewSales({ toko: "", store: "", name: "", nik: "", sh: "", sl: "", tuyul: "" });
+    setNewSales({
+      toko: "",
+      store: "",
+      name: "",
+      nik: "",
+      sh: "",
+      sl: "",
+      tuyul: "",
+    });
   };
-  const delSales = (idx) => setSales((prev) => prev.filter((_, i) => i !== idx));
+  const delSales = (idx) =>
+    setSales((prev) => prev.filter((_, i) => i !== idx));
 
-  const [newMdr, setNewMdr] = useState({ method: "", toko: "", brand: "", mdrPct: 0 });
+  const [newMdr, setNewMdr] = useState({
+    method: "",
+    toko: "",
+    brand: "",
+    mdrPct: 0,
+  });
   const addMdr = () => {
     if (!nonEmpty(newMdr.method)) return;
-    setMdrRules((prev) => [{ ...newMdr, mdrPct: toNumber(newMdr.mdrPct) }, ...prev]);
+    setMdrRules((prev) => [
+      { ...newMdr, mdrPct: toNumber(newMdr.mdrPct) },
+      ...prev,
+    ]);
     setNewMdr({ method: "", toko: "", brand: "", mdrPct: 0 });
   };
-  const delMdr = (idx) => setMdrRules((prev) => prev.filter((_, i) => i !== idx));
+  const delMdr = (idx) =>
+    setMdrRules((prev) => prev.filter((_, i) => i !== idx));
 
-  const [newTenor, setNewTenor] = useState({ tenor: 0, bungaPct: 0, method: "", brand: "", toko: "" });
+  const [newTenor, setNewTenor] = useState({
+    tenor: 0,
+    bungaPct: 0,
+    method: "",
+    brand: "",
+    toko: "",
+  });
   const addTenor = () => {
     if (!toNumber(newTenor.tenor)) return;
-    setTenorRules((prev) => [{ ...newTenor, tenor: toNumber(newTenor.tenor), bungaPct: toNumber(newTenor.bungaPct) }, ...prev]);
+    setTenorRules((prev) => [
+      {
+        ...newTenor,
+        tenor: toNumber(newTenor.tenor),
+        bungaPct: toNumber(newTenor.bungaPct),
+      },
+      ...prev,
+    ]);
     setNewTenor({ tenor: 0, bungaPct: 0, method: "", brand: "", toko: "" });
   };
-  const delTenor = (idx) => setTenorRules((prev) => prev.filter((_, i) => i !== idx));
+  const delTenor = (idx) =>
+    setTenorRules((prev) => prev.filter((_, i) => i !== idx));
 
   const [newToko, setNewToko] = useState({ id: "", name: "" });
   const addToko = () => {
     if (!nonEmpty(newToko.name)) return;
     setTokoLabels((prev) => {
       const next = { ...(prev || {}) };
-      const id = newToko.id ? String(newToko.id) : String(Object.keys(next).length + 1);
+      const id = newToko.id
+        ? String(newToko.id)
+        : String(Object.keys(next).length + 1);
       next[id] = String(newToko.name).toUpperCase();
       return next;
     });
@@ -528,7 +622,12 @@ export default function DataManagement() {
     const katalogFlat = [];
     for (const b of katalog) {
       for (const p of b.products || []) {
-        const rows = Math.max(1, p.warna?.length || 0, p.baterai?.length || 0, p.charger?.length || 0);
+        const rows = Math.max(
+          1,
+          p.warna?.length || 0,
+          p.baterai?.length || 0,
+          p.charger?.length || 0
+        );
         for (let i = 0; i < rows; i += 1) {
           katalogFlat.push({
             Brand: b.brand,
@@ -540,7 +639,11 @@ export default function DataManagement() {
         }
       }
     }
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(katalogFlat), "Katalog");
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.json_to_sheet(katalogFlat),
+      "Katalog"
+    );
 
     // Sales
     XLSX.utils.book_append_sheet(
@@ -563,7 +666,12 @@ export default function DataManagement() {
     XLSX.utils.book_append_sheet(
       wb,
       XLSX.utils.json_to_sheet(
-        (mdrRules || []).map((m) => ({ Method: m.method, Toko: m.toko, Brand: m.brand, "MDR%": m.mdrPct }))
+        (mdrRules || []).map((m) => ({
+          Method: m.method,
+          Toko: m.toko,
+          Brand: m.brand,
+          "MDR%": m.mdrPct,
+        }))
       ),
       "MDR"
     );
@@ -586,24 +694,35 @@ export default function DataManagement() {
     // Toko
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet(Object.entries(tokoLabels || {}).map(([id, name]) => ({ ID: id, Toko: name }))),
+      XLSX.utils.json_to_sheet(
+        Object.entries(tokoLabels || {}).map(([id, name]) => ({
+          ID: id,
+          Toko: name,
+        }))
+      ),
       "Toko"
     );
 
     // List sederhana
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet((refs.paymentMethods || []).map((x) => ({ Method: x }))),
+      XLSX.utils.json_to_sheet(
+        (refs.paymentMethods || []).map((x) => ({ Method: x }))
+      ),
       "PaymentMethods"
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet((refs.priceCategories || []).map((x) => ({ Kategori: x }))),
+      XLSX.utils.json_to_sheet(
+        (refs.priceCategories || []).map((x) => ({ Kategori: x }))
+      ),
       "PriceCategories"
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet((refs.mpProtectOptions || []).map((x) => ({ Opsi: x }))),
+      XLSX.utils.json_to_sheet(
+        (refs.mpProtectOptions || []).map((x) => ({ Opsi: x }))
+      ),
       "MPProtect"
     );
 
@@ -632,25 +751,43 @@ export default function DataManagement() {
     XLSX.utils.book_append_sheet(
       wb,
       XLSX.utils.json_to_sheet([
-        { Brand: "CONTOH BRAND", Type: "CONTOH TYPE", Warna: "Hitam", Baterai: "Lithium 60V", Charger: "5A" },
+        {
+          Brand: "CONTOH BRAND",
+          Type: "CONTOH TYPE",
+          Warna: "Hitam",
+          Baterai: "Lithium 60V",
+          Charger: "5A",
+        },
       ]),
       "Katalog"
     );
     XLSX.utils.book_append_sheet(
       wb,
       XLSX.utils.json_to_sheet([
-        { Toko: "CIRACAS", Store: "-", Nama: "Budi", NIK: "S001", SH: "Anton", SL: "Sari", Tuyul: "Rio" },
+        {
+          Toko: "CIRACAS",
+          Store: "-",
+          Nama: "Budi",
+          NIK: "S001",
+          SH: "Anton",
+          SL: "Sari",
+          Tuyul: "Rio",
+        },
       ]),
       "Sales"
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet([{ Method: "Cash", Toko: "CIRACAS", Brand: "", "MDR%": 0 }]),
+      XLSX.utils.json_to_sheet([
+        { Method: "Cash", Toko: "CIRACAS", Brand: "", "MDR%": 0 },
+      ]),
       "MDR"
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet([{ Tenor: 6, "Bunga%": 2.5, Method: "Kredit", Brand: "", Toko: "" }]),
+      XLSX.utils.json_to_sheet([
+        { Tenor: 6, "Bunga%": 2.5, Method: "Kredit", Brand: "", Toko: "" },
+      ]),
       "Tenor"
     );
     XLSX.utils.book_append_sheet(
@@ -664,7 +801,11 @@ export default function DataManagement() {
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet([{ Method: "Cash" }, { Method: "Transfer" }, { Method: "Kredit" }]),
+      XLSX.utils.json_to_sheet([
+        { Method: "Cash" },
+        { Method: "Transfer" },
+        { Method: "Kredit" },
+      ]),
       "PaymentMethods"
     );
     XLSX.utils.book_append_sheet(
@@ -674,7 +815,10 @@ export default function DataManagement() {
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet([{ Opsi: "Proteck Silver" }, { Opsi: "Proteck Gold" }]),
+      XLSX.utils.json_to_sheet([
+        { Opsi: "Proteck Silver" },
+        { Opsi: "Proteck Gold" },
+      ]),
       "MPProtect"
     );
     XLSX.writeFile(wb, "DataLaporanMilaPhone_TEMPLATE.xlsx");
@@ -684,11 +828,15 @@ export default function DataManagement() {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const wb = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
+        const wb = XLSX.read(new Uint8Array(e.target.result), {
+          type: "array",
+        });
         const pick = (...names) => {
           const set = new Set(names.map(slugSheet));
           const hit = wb.SheetNames.find((n) => set.has(slugSheet(n)));
-          return hit ? XLSX.utils.sheet_to_json(wb.Sheets[hit], { defval: "" }) : null;
+          return hit
+            ? XLSX.utils.sheet_to_json(wb.Sheets[hit], { defval: "" })
+            : null;
         };
 
         const shHarga = pick("harga", "masterharga", "price");
@@ -698,7 +846,11 @@ export default function DataManagement() {
         const shTenor = pick("tenor", "bunga");
         const shToko = pick("toko", "store", "outlet");
         const shPay = pick("paymentmethods", "payment", "metode");
-        const shPCat = pick("pricecategories", "pricecategory", "kategoriharga");
+        const shPCat = pick(
+          "pricecategories",
+          "pricecategory",
+          "kategoriharga"
+        );
         const shMP = pick("mpprotect", "mp protect", "mp");
 
         // Master harga
@@ -710,7 +862,9 @@ export default function DataManagement() {
         if (shKatalog && shKatalog.length) {
           catalogIndex = parseSheetKatalog(shKatalog);
         } else {
-          catalogIndex = deriveCatalogFromMaster(shHarga ? parseSheetHarga(shHarga) : newMaster);
+          catalogIndex = deriveCatalogFromMaster(
+            shHarga ? parseSheetHarga(shHarga) : newMaster
+          );
         }
 
         // Sales / MDR / Tenor / Toko / Lists
@@ -720,11 +874,28 @@ export default function DataManagement() {
         const newToko = shToko ? parseSheetToko(shToko) : tokoLabels;
 
         const newPay =
-          shPay && shPay.length ? parseSimpleArray(shPay, ["method", "metode", "payment"]) : refs.paymentMethods;
+          shPay && shPay.length
+            ? parseSimpleArray(shPay, ["method", "metode", "payment"])
+            : refs.paymentMethods;
         const newPCat =
-          shPCat && shPCat.length ? parseSimpleArray(shPCat, ["kategori", "category", "pricecategory"]) : refs.priceCategories;
+          shPCat && shPCat.length
+            ? parseSimpleArray(shPCat, [
+                "kategori",
+                "category",
+                "pricecategory",
+              ])
+            : refs.priceCategories;
         const newMP =
-          shMP && shMP.length ? parseSimpleArray(shMP, ["opsi", "option", "nama", "name", "mpprotect", "mp"]) : refs.mpProtectOptions;
+          shMP && shMP.length
+            ? parseSimpleArray(shMP, [
+                "opsi",
+                "option",
+                "nama",
+                "name",
+                "mpprotect",
+                "mp",
+              ])
+            : refs.mpProtectOptions;
 
         // Commit state (akan dipersist otomatis via useEffect)
         setMaster(newMaster);
@@ -753,7 +924,10 @@ export default function DataManagement() {
   };
 
   const resetDefaults = () => {
-    if (!window.confirm("Yakin reset seluruh Master Data ke default repository?")) return;
+    if (
+      !window.confirm("Yakin reset seluruh Master Data ke default repository?")
+    )
+      return;
 
     // bersihkan LS global & lokal
     [
@@ -796,9 +970,14 @@ export default function DataManagement() {
   return (
     <div className="p-4 space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-xl md:text-2xl font-bold">Data Management (Master Data) MILA PHONE</h2>
+        <h2 className="text-xl md:text-2xl font-bold">
+          Data Management (Master Data) Mila Phone
+        </h2>
         <div className="flex items-center gap-2">
-          <button onClick={exportExcel} className="px-3 py-2 bg-green-600 text-white rounded shadow-sm">
+          <button
+            onClick={exportExcel}
+            className="px-3 py-2 bg-green-600 text-white rounded shadow-sm"
+          >
             Export All (.xlsx)
           </button>
           <label className="px-3 py-2 bg-gray-100 border rounded cursor-pointer shadow-sm">
@@ -808,13 +987,21 @@ export default function DataManagement() {
               accept=".xlsx,.xls"
               className="hidden"
               ref={fileRef}
-              onChange={(e) => e.target.files?.[0] && importExcel(e.target.files[0])}
+              onChange={(e) =>
+                e.target.files?.[0] && importExcel(e.target.files[0])
+              }
             />
           </label>
-          <button onClick={downloadTemplate} className="px-3 py-2 bg-indigo-600 text-white rounded shadow-sm">
+          <button
+            onClick={downloadTemplate}
+            className="px-3 py-2 bg-indigo-600 text-white rounded shadow-sm"
+          >
             Download Template
           </button>
-          <button onClick={resetDefaults} className="px-3 py-2 bg-rose-600 text-white rounded shadow-sm">
+          <button
+            onClick={resetDefaults}
+            className="px-3 py-2 bg-rose-600 text-white rounded shadow-sm"
+          >
             Reset Default
           </button>
         </div>
@@ -920,10 +1107,16 @@ export default function DataManagement() {
         </div>
 
         <div className="md:col-span-3 flex gap-2">
-          <button onClick={addRow} className="px-4 py-2 bg-blue-600 text-white rounded">
+          <button
+            onClick={addRow}
+            className="px-4 py-2 bg-blue-600 text-white rounded"
+          >
             Tambah
           </button>
-          <button onClick={updateRow} className="px-4 py-2 bg-amber-600 text-white rounded">
+          <button
+            onClick={updateRow}
+            className="px-4 py-2 bg-amber-600 text-white rounded"
+          >
             Update Baris
           </button>
           <div className="ml-auto">
@@ -1011,14 +1204,18 @@ export default function DataManagement() {
           <button
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className={`px-3 py-1 border rounded ${page <= 1 ? "opacity-50" : ""}`}
+            className={`px-3 py-1 border rounded ${
+              page <= 1 ? "opacity-50" : ""
+            }`}
           >
             Prev
           </button>
           <button
             disabled={page >= totalPages}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            className={`px-3 py-1 border rounded ${page >= totalPages ? "opacity-50" : ""}`}
+            className={`px-3 py-1 border rounded ${
+              page >= totalPages ? "opacity-50" : ""
+            }`}
           >
             Next
           </button>
@@ -1027,13 +1224,55 @@ export default function DataManagement() {
 
       {/* ======= Editors: Lists sederhana ======= */}
       <div className="bg-white rounded-lg shadow p-4 grid md:grid-cols-3 gap-4">
-        <RefEditor title="Payment Methods" listKey="paymentMethods" refs={refs} onAdd={addRef} onDel={deleteRef} />
-        <RefEditor title="Price Categories" listKey="priceCategories" refs={refs} onAdd={addRef} onDel={deleteRef} />
-        <RefEditor title="MP Protect Options" listKey="mpProtectOptions" refs={refs} onAdd={addRef} onDel={deleteRef} />
-        <RefEditor title="Tenor Options" listKey="tenorOptions" refs={refs} onAdd={addRef} onDel={deleteRef} />
-        <RefEditor title="Brand List" listKey="brandList" refs={refs} onAdd={addRef} onDel={deleteRef} />
-        <RefEditor title="Product List" listKey="productList" refs={refs} onAdd={addRef} onDel={deleteRef} />
-        <RefEditor title="Warna List" listKey="warnaList" refs={refs} onAdd={addRef} onDel={deleteRef} />
+        <RefEditor
+          title="Payment Methods"
+          listKey="paymentMethods"
+          refs={refs}
+          onAdd={addRef}
+          onDel={deleteRef}
+        />
+        <RefEditor
+          title="Price Categories"
+          listKey="priceCategories"
+          refs={refs}
+          onAdd={addRef}
+          onDel={deleteRef}
+        />
+        <RefEditor
+          title="MP Protect Options"
+          listKey="mpProtectOptions"
+          refs={refs}
+          onAdd={addRef}
+          onDel={deleteRef}
+        />
+        <RefEditor
+          title="Tenor Options"
+          listKey="tenorOptions"
+          refs={refs}
+          onAdd={addRef}
+          onDel={deleteRef}
+        />
+        <RefEditor
+          title="Brand List"
+          listKey="brandList"
+          refs={refs}
+          onAdd={addRef}
+          onDel={deleteRef}
+        />
+        <RefEditor
+          title="Product List"
+          listKey="productList"
+          refs={refs}
+          onAdd={addRef}
+          onDel={deleteRef}
+        />
+        <RefEditor
+          title="Warna List"
+          listKey="warnaList"
+          refs={refs}
+          onAdd={addRef}
+          onDel={deleteRef}
+        />
       </div>
 
       {/* ======= Editors: Sales / MDR / Tenor / Toko ======= */}
@@ -1042,15 +1281,69 @@ export default function DataManagement() {
         <section className="bg-white rounded-lg shadow p-4">
           <div className="font-semibold mb-2">Sales / Organisasi</div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-2">
-            <input className="border rounded p-2" placeholder="Toko" value={newSales.toko} onChange={(e) => setNewSales((s) => ({ ...s, toko: e.target.value }))} />
-            <input className="border rounded p-2" placeholder="Store" value={newSales.store} onChange={(e) => setNewSales((s) => ({ ...s, store: e.target.value }))} />
-            <input className="border rounded p-2" placeholder="Nama" value={newSales.name} onChange={(e) => setNewSales((s) => ({ ...s, name: e.target.value }))} />
-            <input className="border rounded p-2" placeholder="NIK" value={newSales.nik} onChange={(e) => setNewSales((s) => ({ ...s, nik: e.target.value }))} />
-            <input className="border rounded p-2" placeholder="SH" value={newSales.sh} onChange={(e) => setNewSales((s) => ({ ...s, sh: e.target.value }))} />
-            <input className="border rounded p-2" placeholder="SL" value={newSales.sl} onChange={(e) => setNewSales((s) => ({ ...s, sl: e.target.value }))} />
-            <input className="border rounded p-2" placeholder="Tuyul/Freelance" value={newSales.tuyul} onChange={(e) => setNewSales((s) => ({ ...s, tuyul: e.target.value }))} />
+            <input
+              className="border rounded p-2"
+              placeholder="Toko"
+              value={newSales.toko}
+              onChange={(e) =>
+                setNewSales((s) => ({ ...s, toko: e.target.value }))
+              }
+            />
+            <input
+              className="border rounded p-2"
+              placeholder="Store"
+              value={newSales.store}
+              onChange={(e) =>
+                setNewSales((s) => ({ ...s, store: e.target.value }))
+              }
+            />
+            <input
+              className="border rounded p-2"
+              placeholder="Nama"
+              value={newSales.name}
+              onChange={(e) =>
+                setNewSales((s) => ({ ...s, name: e.target.value }))
+              }
+            />
+            <input
+              className="border rounded p-2"
+              placeholder="NIK"
+              value={newSales.nik}
+              onChange={(e) =>
+                setNewSales((s) => ({ ...s, nik: e.target.value }))
+              }
+            />
+            <input
+              className="border rounded p-2"
+              placeholder="SH"
+              value={newSales.sh}
+              onChange={(e) =>
+                setNewSales((s) => ({ ...s, sh: e.target.value }))
+              }
+            />
+            <input
+              className="border rounded p-2"
+              placeholder="SL"
+              value={newSales.sl}
+              onChange={(e) =>
+                setNewSales((s) => ({ ...s, sl: e.target.value }))
+              }
+            />
+            <input
+              className="border rounded p-2"
+              placeholder="Tuyul/Freelance"
+              value={newSales.tuyul}
+              onChange={(e) =>
+                setNewSales((s) => ({ ...s, tuyul: e.target.value }))
+              }
+            />
           </div>
-          <button onClick={addSales} className="px-3 py-2 bg-blue-600 text-white rounded">Tambah</button>
+          <button
+            onClick={addSales}
+            className="px-3 py-2 bg-blue-600 text-white rounded"
+          >
+            Tambah
+          </button>
           <div className="overflow-auto mt-3 border rounded">
             <table className="min-w-[800px] w-full text-sm">
               <thead className="bg-gray-50">
@@ -1076,13 +1369,20 @@ export default function DataManagement() {
                     <td className="p-2">{s.sl}</td>
                     <td className="p-2">{s.tuyul}</td>
                     <td className="p-2">
-                      <button onClick={() => delSales(i)} className="px-2 py-1 text-xs bg-red-600 text-white rounded">Hapus</button>
+                      <button
+                        onClick={() => delSales(i)}
+                        className="px-2 py-1 text-xs bg-red-600 text-white rounded"
+                      >
+                        Hapus
+                      </button>
                     </td>
                   </tr>
                 ))}
                 {!sales?.length && (
                   <tr>
-                    <td colSpan={8} className="p-3 text-center text-gray-500">Kosong.</td>
+                    <td colSpan={8} className="p-3 text-center text-gray-500">
+                      Kosong.
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -1094,12 +1394,45 @@ export default function DataManagement() {
         <section className="bg-white rounded-lg shadow p-4">
           <div className="font-semibold mb-2">Aturan MDR</div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
-            <input className="border rounded p-2" placeholder="Method (Cash/Transfer/...)" value={newMdr.method} onChange={(e) => setNewMdr((m) => ({ ...m, method: e.target.value }))} />
-            <input className="border rounded p-2" placeholder="Toko (opsional)" value={newMdr.toko} onChange={(e) => setNewMdr((m) => ({ ...m, toko: e.target.value }))} />
-            <input className="border rounded p-2" placeholder="Brand (opsional)" value={newMdr.brand} onChange={(e) => setNewMdr((m) => ({ ...m, brand: e.target.value }))} />
-            <input className="border rounded p-2 text-right" placeholder="MDR %" value={newMdr.mdrPct} onChange={(e) => setNewMdr((m) => ({ ...m, mdrPct: toNumber(e.target.value) }))} />
+            <input
+              className="border rounded p-2"
+              placeholder="Method (Cash/Transfer/...)"
+              value={newMdr.method}
+              onChange={(e) =>
+                setNewMdr((m) => ({ ...m, method: e.target.value }))
+              }
+            />
+            <input
+              className="border rounded p-2"
+              placeholder="Toko (opsional)"
+              value={newMdr.toko}
+              onChange={(e) =>
+                setNewMdr((m) => ({ ...m, toko: e.target.value }))
+              }
+            />
+            <input
+              className="border rounded p-2"
+              placeholder="Brand (opsional)"
+              value={newMdr.brand}
+              onChange={(e) =>
+                setNewMdr((m) => ({ ...m, brand: e.target.value }))
+              }
+            />
+            <input
+              className="border rounded p-2 text-right"
+              placeholder="MDR %"
+              value={newMdr.mdrPct}
+              onChange={(e) =>
+                setNewMdr((m) => ({ ...m, mdrPct: toNumber(e.target.value) }))
+              }
+            />
           </div>
-          <button onClick={addMdr} className="px-3 py-2 bg-blue-600 text-white rounded">Tambah</button>
+          <button
+            onClick={addMdr}
+            className="px-3 py-2 bg-blue-600 text-white rounded"
+          >
+            Tambah
+          </button>
           <div className="overflow-auto mt-3 border rounded">
             <table className="min-w-[700px] w-full text-sm">
               <thead className="bg-gray-50">
@@ -1119,13 +1452,20 @@ export default function DataManagement() {
                     <td className="p-2">{m.brand || "-"}</td>
                     <td className="p-2 text-right">{m.mdrPct}</td>
                     <td className="p-2">
-                      <button onClick={() => delMdr(i)} className="px-2 py-1 text-xs bg-red-600 text-white rounded">Hapus</button>
+                      <button
+                        onClick={() => delMdr(i)}
+                        className="px-2 py-1 text-xs bg-red-600 text-white rounded"
+                      >
+                        Hapus
+                      </button>
                     </td>
                   </tr>
                 ))}
                 {!mdrRules?.length && (
                   <tr>
-                    <td colSpan={5} className="p-3 text-center text-gray-500">Kosong.</td>
+                    <td colSpan={5} className="p-3 text-center text-gray-500">
+                      Kosong.
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -1137,13 +1477,56 @@ export default function DataManagement() {
         <section className="bg-white rounded-lg shadow p-4">
           <div className="font-semibold mb-2">Aturan Tenor & Bunga</div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-2">
-            <input className="border rounded p-2 text-right" placeholder="Tenor (bulan)" value={newTenor.tenor} onChange={(e) => setNewTenor((t) => ({ ...t, tenor: toNumber(e.target.value) }))} />
-            <input className="border rounded p-2 text-right" placeholder="Bunga %" value={newTenor.bungaPct} onChange={(e) => setNewTenor((t) => ({ ...t, bungaPct: toNumber(e.target.value) }))} />
-            <input className="border rounded p-2" placeholder="Method (opsional)" value={newTenor.method} onChange={(e) => setNewTenor((t) => ({ ...t, method: e.target.value }))} />
-            <input className="border rounded p-2" placeholder="Brand (opsional)" value={newTenor.brand} onChange={(e) => setNewTenor((t) => ({ ...t, brand: e.target.value }))} />
-            <input className="border rounded p-2" placeholder="Toko (opsional)" value={newTenor.toko} onChange={(e) => setNewTenor((t) => ({ ...t, toko: e.target.value }))} />
+            <input
+              className="border rounded p-2 text-right"
+              placeholder="Tenor (bulan)"
+              value={newTenor.tenor}
+              onChange={(e) =>
+                setNewTenor((t) => ({ ...t, tenor: toNumber(e.target.value) }))
+              }
+            />
+            <input
+              className="border rounded p-2 text-right"
+              placeholder="Bunga %"
+              value={newTenor.bungaPct}
+              onChange={(e) =>
+                setNewTenor((t) => ({
+                  ...t,
+                  bungaPct: toNumber(e.target.value),
+                }))
+              }
+            />
+            <input
+              className="border rounded p-2"
+              placeholder="Method (opsional)"
+              value={newTenor.method}
+              onChange={(e) =>
+                setNewTenor((t) => ({ ...t, method: e.target.value }))
+              }
+            />
+            <input
+              className="border rounded p-2"
+              placeholder="Brand (opsional)"
+              value={newTenor.brand}
+              onChange={(e) =>
+                setNewTenor((t) => ({ ...t, brand: e.target.value }))
+              }
+            />
+            <input
+              className="border rounded p-2"
+              placeholder="Toko (opsional)"
+              value={newTenor.toko}
+              onChange={(e) =>
+                setNewTenor((t) => ({ ...t, toko: e.target.value }))
+              }
+            />
           </div>
-          <button onClick={addTenor} className="px-3 py-2 bg-blue-600 text-white rounded">Tambah</button>
+          <button
+            onClick={addTenor}
+            className="px-3 py-2 bg-blue-600 text-white rounded"
+          >
+            Tambah
+          </button>
           <div className="overflow-auto mt-3 border rounded">
             <table className="min-w-[800px] w-full text-sm">
               <thead className="bg-gray-50">
@@ -1165,13 +1548,20 @@ export default function DataManagement() {
                     <td className="p-2">{t.brand || "-"}</td>
                     <td className="p-2">{t.toko || "-"}</td>
                     <td className="p-2">
-                      <button onClick={() => delTenor(i)} className="px-2 py-1 text-xs bg-red-600 text-white rounded">Hapus</button>
+                      <button
+                        onClick={() => delTenor(i)}
+                        className="px-2 py-1 text-xs bg-red-600 text-white rounded"
+                      >
+                        Hapus
+                      </button>
                     </td>
                   </tr>
                 ))}
                 {!tenorRules?.length && (
                   <tr>
-                    <td colSpan={6} className="p-3 text-center text-gray-500">Kosong.</td>
+                    <td colSpan={6} className="p-3 text-center text-gray-500">
+                      Kosong.
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -1183,10 +1573,29 @@ export default function DataManagement() {
         <section className="bg-white rounded-lg shadow p-4">
           <div className="font-semibold mb-2">Label Toko</div>
           <div className="grid grid-cols-2 gap-2 mb-2">
-            <input className="border rounded p-2" placeholder="ID (opsional)" value={newToko.id} onChange={(e) => setNewToko((t) => ({ ...t, id: e.target.value }))} />
-            <input className="border rounded p-2" placeholder="Nama Toko" value={newToko.name} onChange={(e) => setNewToko((t) => ({ ...t, name: e.target.value }))} />
+            <input
+              className="border rounded p-2"
+              placeholder="ID (opsional)"
+              value={newToko.id}
+              onChange={(e) =>
+                setNewToko((t) => ({ ...t, id: e.target.value }))
+              }
+            />
+            <input
+              className="border rounded p-2"
+              placeholder="Nama Toko"
+              value={newToko.name}
+              onChange={(e) =>
+                setNewToko((t) => ({ ...t, name: e.target.value }))
+              }
+            />
           </div>
-          <button onClick={addToko} className="px-3 py-2 bg-blue-600 text-white rounded">Tambah</button>
+          <button
+            onClick={addToko}
+            className="px-3 py-2 bg-blue-600 text-white rounded"
+          >
+            Tambah
+          </button>
           <div className="overflow-auto mt-3 border rounded">
             <table className="min-w-[400px] w-full text-sm">
               <thead className="bg-gray-50">
@@ -1202,13 +1611,20 @@ export default function DataManagement() {
                     <td className="p-2">{id}</td>
                     <td className="p-2">{name}</td>
                     <td className="p-2">
-                      <button onClick={() => delToko(id)} className="px-2 py-1 text-xs bg-red-600 text-white rounded">Hapus</button>
+                      <button
+                        onClick={() => delToko(id)}
+                        className="px-2 py-1 text-xs bg-red-600 text-white rounded"
+                      >
+                        Hapus
+                      </button>
                     </td>
                   </tr>
                 ))}
                 {!Object.keys(tokoLabels || {}).length && (
                   <tr>
-                    <td colSpan={3} className="p-3 text-center text-gray-500">Kosong.</td>
+                    <td colSpan={3} className="p-3 text-center text-gray-500">
+                      Kosong.
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -1218,8 +1634,10 @@ export default function DataManagement() {
       </div>
 
       <p className="text-xs text-gray-500">
-        Semua perubahan otomatis disimpan dan disinkronkan ke localStorage. Modul lain (Dashboard Toko, Input
-        Penjualan, Penjualan HP/ML/Accessories, Laporan Keuangan, Stock) langsung memakai data terbaru.
+        Semua perubahan otomatis disimpan dan disinkronkan ke localStorage.
+        Modul lain (Dashboard Toko, Input Penjualan, Penjualan
+        HP/ML/Accessories, Laporan Keuangan, Stock) langsung memakai data
+        terbaru.
       </p>
     </div>
   );
@@ -1253,12 +1671,17 @@ function RefEditor({ title, listKey, refs, onAdd, onDel }) {
         {list.map((x) => (
           <div key={x} className="flex justify-between items-center py-1">
             <span className="text-sm">{x}</span>
-            <button onClick={() => onDel(listKey, x)} className="px-2 py-1 text-xs bg-red-600 text-white rounded">
+            <button
+              onClick={() => onDel(listKey, x)}
+              className="px-2 py-1 text-xs bg-red-600 text-white rounded"
+            >
               Hapus
             </button>
           </div>
         ))}
-        {list.length === 0 && <div className="text-xs text-gray-500">Kosong.</div>}
+        {list.length === 0 && (
+          <div className="text-xs text-gray-500">Kosong.</div>
+        )}
       </div>
     </div>
   );
