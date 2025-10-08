@@ -1,4 +1,4 @@
-// src/App.jsx
+// src/App.jsx - MODIFIED VERSION
 import React, { useEffect, useMemo, useState } from "react";
 import {
   BrowserRouter as Router,
@@ -7,6 +7,8 @@ import {
   Navigate,
   useParams,
 } from "react-router-dom";
+
+import { AuthProvider, useAuth } from "./components/GoogleAuth/AuthContext"; // NEW IMPORT
 
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
@@ -21,7 +23,7 @@ import ServiceHandphone from "./pages/ServiceHandphone";
 import ServiceMotorListrik from "./pages/ServiceMotorListrik";
 import PenjualanHandphone from "./pages/PenjualanHandphone";
 import PenjualanMotorListrik from "./pages/PenjualanMotorListrik";
-import DataManagement from "./pages/DataManagement";
+// import DataManagement from "./pages/DataManagement"; // Hapus import ini jika sudah ada DataManager di components
 
 // === Halaman stok baru (per halaman) ===
 import StockAccessories from "./pages/stock/StockAccessories";
@@ -46,6 +48,9 @@ import StockMotorListrikPusat from "./pages/stock/StockMotorListrikPusat";
 import FinanceReport from "./pages/Reports/FinanceReport";
 import FinanceReportMonthly from "./pages/Reports/FinanceReportMonthly";
 
+// NEW IMPORTS for Google Integration
+import DataManager from "./components/DataManager/DataManager";
+
 // ---------- dummy data toko ----------
 const generateDummyData = (tokoName) =>
   Array.from({ length: 10 }, (_, i) => ({
@@ -69,7 +74,7 @@ const initialTokoData = {
   9: generateDummyData("KOTA WISATA"),
 };
 
-export default function App() {
+function AppContent() {
   // ===== Session user =====
   const [user, setUser] = useState(() => {
     try {
@@ -109,18 +114,28 @@ export default function App() {
   };
 
   // ===== Data toko (const) =====
-  const tokoData = useMemo(() => initialTokoData, []);
+  // Kita akan menggunakan state untuk data toko ini, agar bisa di-update dari Google Sheets
+  const [currentTokoData, setCurrentTokoData] = useState(initialTokoData);
+
+  // Fungsi untuk mengupdate data toko (misalnya setelah import dari Sheets)
+  const updateTokoData = (tokoId, newData) => {
+    setCurrentTokoData((prev) => ({
+      ...prev,
+      [tokoId]: newData,
+    }));
+  };
 
   // ===== Guard: pic_toko hanya boleh akses tokonya =====
   const TokoGuard = ({ id }) => {
     const tokoId = Number(id);
 
-    if (user?.role === "superadmin" || user?.role === "pic_toko") {
+    if (user?.role === "superadmin" || user?.role === "admin") { // Admin juga bisa lihat semua toko
       return (
         <DashboardToko
           user={user}
           tokoId={tokoId}
-          initialData={tokoData[tokoId]}
+          appData={currentTokoData[tokoId]} // Pakai state data toko
+          setAppData={(newData) => updateTokoData(tokoId, newData)} // Fungsi update
         />
       );
     }
@@ -139,7 +154,8 @@ export default function App() {
         <DashboardToko
           user={user}
           tokoId={tokoId}
-          initialData={tokoData[tokoId]}
+          appData={currentTokoData[tokoId]} // Pakai state data toko
+          setAppData={(newData) => updateTokoData(tokoId, newData)} // Fungsi update
         />
       );
     }
@@ -152,7 +168,11 @@ export default function App() {
     return <TokoGuard id={id} />;
   };
 
-  // ===== Guard halaman stok per toko =====
+  // ===== Guard halaman stok per toko (akan diupdate serupa) =====
+  // Untuk kesederhanaan, saya hanya akan menunjukkan bagaimana mengimplementasikan
+  // DataManager di DashboardToko. Anda bisa mengadaptasi GuardedAccessories, dll.
+  // dengan pola yang sama jika Anda ingin DataManager di sana juga.
+
   const GuardedAccessories = () => {
     const { id } = useParams();
     const tokoId = Number(id);
@@ -232,9 +252,9 @@ export default function App() {
         // ===== Sudah login =====
         <div className="flex h-screen">
           <Sidebar role={user.role} toko={user.toko} onLogout={handleLogout} />
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col overflow-hidden">
             <Navbar user={user} onLogout={handleLogout} />
-            <div className="p-4 overflow-y-auto">
+            <div className="flex-1 p-4 overflow-y-auto">
               <Routes>
                 <Route path="/" element={<Navigate to="/dashboard" />} />
 
@@ -299,7 +319,7 @@ export default function App() {
                   path="/user-management"
                   element={
                     <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
-                      <UserManagement />
+                      <UserManagement users={users} setUsers={setUsers} /> {/* Teruskan users state */}
                     </ProtectedRoute>
                   }
                 />
@@ -347,15 +367,22 @@ export default function App() {
                   path="/products"
                   element={
                     <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
+                      {/* Anda mungkin ingin DataManager di sini juga untuk data produk */}
                       <Products />
                     </ProtectedRoute>
                   }
                 />
                 <Route
-                  path="/data-management"
+                  path="/google-data-manager"
                   element={
                     <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
-                      <DataManagement />
+                      {/* DataManager umum untuk superadmin/admin */}
+                      <DataManager 
+                        appData={currentTokoData[1]} // Contoh: data toko 1 sebagai default
+                        setAppData={(newData) => updateTokoData(1, newData)}
+                        dataType="dashboard_overall" // Tipe data umum
+                        tokoId={null} // Tidak spesifik toko
+                      />
                     </ProtectedRoute>
                   }
                 />
@@ -494,5 +521,14 @@ export default function App() {
         </div>
       )}
     </Router>
+  );
+}
+
+// Komponen pembungkus AppContent dengan AuthProvider
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

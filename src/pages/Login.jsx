@@ -1,89 +1,148 @@
-// Login.jsx
+// src/pages/Login.jsx - MODIFIED
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import defaultUsers from "../data/UserManagementRole";
+import GoogleAuth from "../components/GoogleAuth/GoogleAuth"; // Import komponen GoogleAuth
+import { useAuth } from "../components/GoogleAuth/AuthContext"; // Import useAuth hook
 
-const Login = ({ onLogin, users }) => {
+export default function Login({ onLogin, users }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { isAuthenticated, userProfile, login, logout } = useAuth(); // Ambil dari AuthContext
 
-  const list =
-    users ||
-    (() => {
-      try {
-        const ls = JSON.parse(localStorage.getItem("users"));
-        return Array.isArray(ls) ? ls : defaultUsers;
-      } catch {
-        return defaultUsers;
-      }
-    })();
+  // --- Login Lokal ---
+  const handleLocalLogin = (e) => {
+    e.preventDefault();
+    setError("");
 
-  const handleLogin = () => {
-    const foundUser = list.find(
-      (u) => u.username === username.trim() && u.password === password
+    const foundUser = users.find(
+      (u) => u.username === username && u.password === password
     );
-    if (!foundUser) {
-      setError("Username atau password salah!");
-      return;
-    }
-    localStorage.setItem("user", JSON.stringify(foundUser));
-    if (typeof onLogin === "function") onLogin(foundUser);
 
-    if (foundUser.role === "superadmin") {
-      navigate("/dashboard", { replace: true });
-    } else if (foundUser.role?.startsWith("pic_toko")) {
-      const tokoId = Number(foundUser.toko ?? foundUser.role.replace("pic_toko", "")) || 1;
-      navigate(`/toko/${tokoId}`, { replace: true });
+    if (foundUser) {
+      onLogin(foundUser); // Ini akan mengupdate state 'user' di App.jsx
+      navigate("/dashboard");
     } else {
-      navigate("/dashboard", { replace: true });
+      setError("Username atau password salah.");
     }
   };
 
-  const onKeyDown = (e) => e.key === "Enter" && handleLogin();
+  // --- Callback setelah Google Login (dari GoogleAuth component) ---
+  const handleGoogleAuthChange = (isGoogleLoggedIn) => {
+    if (isGoogleLoggedIn && userProfile) {
+      // Logic Anda untuk mengautentikasi user Google di sistem lokal
+      // Misalnya, cek apakah email Google userProfile.email sudah terdaftar
+      // Jika belum, Anda bisa arahkan ke halaman register atau membuat user baru secara otomatis
+      // Untuk tujuan demo, kita asumsikan login Google berarti "berhasil"
+      console.log("User Google berhasil login:", userProfile);
+
+      // Cek apakah user Google ini sudah terdaftar di sistem lokal kita
+      const existingUser = users.find((u) => u.email === userProfile.email);
+
+      if (existingUser) {
+        onLogin(existingUser); // Login ke sistem lokal dengan user yang sudah ada
+        navigate("/dashboard");
+      } else {
+        // Jika belum ada, Anda bisa memutuskan untuk:
+        // 1. Otomatis membuat user baru (misal, role default 'pic_toko')
+        // 2. Arahkan ke halaman register dengan data Google sudah terisi
+        // 3. Tampilkan pesan bahwa akun Google ini belum terdaftar.
+
+        // Contoh: Jika user Google belum terdaftar, bisa tampilkan pesan
+        setError(
+          "Akun Google ini belum terdaftar di sistem. Silakan login lokal atau daftar."
+        );
+        // Atau: Anda bisa panggil addUser(newUser) dan onLogin(newUser) di App.jsx
+        // logout(); // Logout dari Google jika tidak diizinkan masuk
+      }
+    }
+  };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-96">
-        <h2 className="text-xl font-bold mb-4 text-center">Login Mila Phone</h2>
-        {error && <p className="text-red-500 mb-3 text-center">{error}</p>}
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+        <h2 className="text-2xl font-bold text-center text-gray-900">
+          Silahkan Login ke Mila Phone Management
+        </h2>
 
-        <input
-          type="text"
-          placeholder="Username"
-          className="w-full border p-2 mb-3 rounded"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          onKeyDown={onKeyDown}
-          autoFocus
-        />
-
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full border p-2 mb-4 rounded"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={onKeyDown}
-        />
-
-        <button
-          onClick={handleLogin}
-          className="w-full bg-blue-500 hover:bg-blue-600 active:bg-blue-700 transition text-white py-2 rounded font-semibold"
-        >
-          Login
-        </button>
-
-        <div className="mt-4 text-center text-sm text-slate-600">
-          Belum punya akun?{" "}
-          <a href="/register" className="text-blue-600 hover:underline">
-            Register
-          </a>
+        {/* Tombol Google Login */}
+        <GoogleAuth onAuthChange={handleGoogleAuthChange} />
+        {isAuthenticated && userProfile && (
+          <p className="text-center text-sm text-green-600">
+            Terhubung dengan Google sebagai {userProfile.name} (
+            {userProfile.email})
+          </p>
+        )}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="bg-white px-2 text-gray-500">Atau</span>
+          </div>
         </div>
+
+        {error && (
+          <div className="p-3 text-sm text-red-700 bg-red-100 rounded-lg">
+            {error}
+          </div>
+        )}
+
+        <form className="space-y-4" onSubmit={handleLocalLogin}>
+          <div>
+            <label
+              htmlFor="username"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Username
+            </label>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              required
+              className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          <div>
+            <button
+              type="submit"
+              className="flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Login
+            </button>
+          </div>
+        </form>
+        <p className="text-sm text-center text-gray-600">
+          Belum punya akun?{" "}
+          <a
+            href="/register"
+            className="font-medium text-blue-600 hover:text-blue-500"
+          >
+            Daftar sekarang
+          </a>
+        </p>
       </div>
     </div>
   );
-};
-
-export default Login;
+}

@@ -1,622 +1,226 @@
-// src/pages/UserManagement.jsx
-import React, { useEffect, useMemo, useState } from "react";
-import defaultUsers from "../data/UserManagementRole";
-import TOKO_LABELS from "../data/TokoLabels";
+// src/pages/UserManagement.jsx - MODIFIED
+import React, { useState } from "react";
+import DataManager from "../components/DataManager/DataManager"; // Import DataManager
+import { useAuth } from "../components/GoogleAuth/AuthContext"; // Untuk cek role
 
-// Buat daftar toko dari TokoLabels (id -> label)
-const tokoEntries = Object.entries(TOKO_LABELS)
-  .map(([id, label]) => ({ id: Number(id), label }))
-  .sort((a, b) => a.id - b.id);
+export default function UserManagement({ users, setUsers }) {
+  const { user } = useAuth(); // Ambil info user yang login
+  const [editingUser, setEditingUser] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-// Helper: cari ID toko dari nama toko (label di TokoLabels)
-function findTokoIdByName(name) {
-  if (!name) return null;
-  const hit = Object.entries(TOKO_LABELS).find(
-    ([, label]) => (label || "").toLowerCase().trim() === String(name).toLowerCase().trim()
-  );
-  return hit ? Number(hit[0]) : null;
-}
-function findTokoNameById(id) {
-  return TOKO_LABELS[id] || null;
-}
-
-// Helper: sanitasi nama toko untuk embedded di role "pic_toko<NAME>"
-function sanitizeForRole(name) {
-  return String(name || "")
-    .replace(/\s+/g, "") // hapus spasi
-    .replace(/[^A-Za-z0-9_]/g, ""); // hanya huruf/angka/underscore
-}
-
-// Parse role + toko (nama) menjadi struktur normal
-function rolePieces(role, tokoName) {
-  if ((role || "").toLowerCase() === "superadmin") {
-    return { base: "superadmin", tokoName: null, tokoId: null };
-  }
-  // Bentuk role lama/baru: "pic_toko" + <NAMA TOKO TANPA SPASI>
-  // Contoh data Anda: pic_tokoCILANGKAP, pic_tokoKONTEN_LIVE, dll.
-  const m = /^pic_toko(.+)$/i.exec(role || "");
-  const embeddedName = m ? m[1] : null;
-
-  // Prioritaskan nama toko dari field "toko" kalau ada (karena itu nama resmi)
-  const name = (tokoName && String(tokoName).trim())
-    ? String(tokoName).trim()
-    : embeddedName
-    ? embeddedName.replace(/_/g, " ")
-    : null;
-
-  const tokoId = findTokoIdByName(name);
-  return { base: "pic_toko", tokoName: name, tokoId };
-}
-
-export default function UserManagement() {
-  // ====== sumber data users (localStorage -> default dari file UserManagementRole.jsx) ======
-  const [users, setUsers] = useState(() => {
-    try {
-      const ls = JSON.parse(localStorage.getItem("users"));
-      return Array.isArray(ls) && ls.length ? ls : defaultUsers;
-    } catch {
-      return defaultUsers;
-    }
-  });
-
-  useEffect(() => {
-    localStorage.setItem("users", JSON.stringify(users));
-  }, [users]);
-
-  // ====== form tambah user ======
-  const [form, setForm] = useState({
-    name: "",
-    username: "",
-    password: "",
-    roleBase: "pic_toko", // "superadmin" | "pic_toko"
-    tokoId: tokoEntries[0]?.id ?? null, // aktif saat roleBase = pic_toko
-  });
-
-  const resetForm = () =>
-    setForm({
-      name: "",
-      username: "",
-      password: "",
-      roleBase: "pic_toko",
-      tokoId: tokoEntries[0]?.id ?? null,
-    });
-
-  const addUser = () => {
-    const username = (form.username || "").trim();
-    const password = (form.password || "").trim();
-
-    if (!username || !password) {
-      alert("Username & Password wajib diisi.");
-      return;
-    }
-    if (users.some((u) => (u.username || "").trim().toLowerCase() === username.toLowerCase())) {
-      alert("Username sudah dipakai.");
-      return;
-    }
-
-    let final;
-    if (form.roleBase === "superadmin") {
-      final = {
-        username,
-        password,
-        role: "superadmin",
-        toko: "ALL",
-        nama: form.name?.trim() || username,
-        name: form.name?.trim() || username,
-      };
-    } else {
-      const tokoId = form.tokoId ?? tokoEntries[0]?.id ?? null;
-      const tokoName = findTokoNameById(tokoId) || "";
-      const role = `pic_toko${sanitizeForRole(tokoName)}`;
-      final = {
-        username,
-        password,
-        role,
-        toko: tokoName, // simpan nama toko (kompatibel dgn data master)
-        nama: form.name?.trim() || username,
-        name: form.name?.trim() || username,
-      };
-    }
-
-    setUsers((prev) => [final, ...prev]);
-    resetForm();
-    setPage(1);
+  // Fungsi untuk mengedit user
+  const handleEdit = (userId) => {
+    const userToEdit = users.find((u) => u.id === userId);
+    setEditingUser(userToEdit);
+    setIsModalOpen(true);
   };
 
-  // ====== edit user ======
-  const [editing, setEditing] = useState(null); // username yg sedang diedit
-  const [draft, setDraft] = useState(null);
-
-  const beginEdit = (u) => {
-    const { base, tokoId } = rolePieces(u.role, u.toko);
-    setEditing(u.username);
-    setDraft({
-      ...u,
-      name: u.name || u.nama || "",
-      roleBase: base,
-      tokoId: tokoId, // mungkin null jika nama toko tidak dikenal
-    });
-  };
-
-  const cancelEdit = () => {
-    setEditing(null);
-    setDraft(null);
-  };
-
-  const saveEdit = () => {
-    if (!draft) return;
-    const password = (draft.password || "").trim();
-    if (!password) {
-      alert("Password tidak boleh kosong.");
-      return;
+  // Fungsi untuk menghapus user
+  const handleDelete = (userId) => {
+    if (window.confirm("Apakah Anda yakin ingin menghapus user ini?")) {
+      setUsers((prevUsers) => prevUsers.filter((u) => u.id !== userId));
     }
-
-    let final;
-    if (draft.roleBase === "superadmin") {
-      final = {
-        ...draft,
-        role: "superadmin",
-        toko: "ALL",
-        nama: draft.name || draft.nama || "",
-      };
-    } else {
-      const useTokoId =
-        draft.tokoId ??
-        rolePieces(draft.role, draft.toko).tokoId ??
-        tokoEntries[0]?.id ??
-        null;
-      const tokoName = findTokoNameById(useTokoId) || (draft.toko || "");
-      const role = `pic_toko${sanitizeForRole(tokoName)}`;
-      final = {
-        ...draft,
-        role,
-        toko: tokoName,
-        nama: draft.name || draft.nama || "",
-      };
-    }
-
-    // username dianggap PK dan tidak diubah pada edit
-    setUsers((prev) => prev.map((u) => (u.username === editing ? final : u)));
-    cancelEdit();
   };
 
-  // ====== delete user ======
-  const del = (username) => {
-    if (!window.confirm("Hapus user ini?")) return;
-    setUsers((prev) => prev.filter((u) => u.username !== username));
-    // mundurkan halaman bila perlu
-    setTimeout(() => {
-      setPage((p) => {
-        const newCount = filteredUsers.length - 1;
-        const totalPages = Math.max(1, Math.ceil(newCount / pageSize));
-        return Math.min(p, totalPages);
-      });
-    }, 0);
+  // Fungsi untuk menyimpan perubahan user
+  const handleSaveUser = (updatedUser) => {
+    setUsers((prevUsers) =>
+      prevUsers.map((u) => (u.id === updatedUser.id ? updatedUser : u))
+    );
+    setIsModalOpen(false);
+    setEditingUser(null);
   };
 
-  // ====== FILTER & SEARCH ======
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterRole, setFilterRole] = useState("all"); // all | superadmin | pic_toko
-  const [filterTokoId, setFilterTokoId] = useState("all"); // "all" | number
+  // Konversi data users ke format yang sesuai untuk DataManager
+  const usersForDataManager = users.map(u => ({
+    id: u.id,
+    username: u.username,
+    email: u.email || '', // Tambahkan email jika ada (dari Google Login)
+    role: u.role,
+    toko: u.toko || '',
+  }));
 
-  useEffect(() => {
-    setPage(1);
-  }, [searchTerm, filterRole, filterTokoId]);
-
-  const filteredUsers = useMemo(() => {
-    const s = searchTerm.trim().toLowerCase();
-
-    return users
-      .filter((u) => {
-        const rp = rolePieces(u.role, u.toko);
-
-        // Filter role
-        if (filterRole !== "all") {
-          if (filterRole === "superadmin" && rp.base !== "superadmin") return false;
-          if (filterRole === "pic_toko" && rp.base !== "pic_toko") return false;
-        }
-        // Filter toko
-        if (filterTokoId !== "all") {
-          if (rp.base !== "pic_toko") return false;
-          if (rp.tokoId !== Number(filterTokoId)) return false;
-        }
-        // Search (username, name/nama, role, label toko, toko name)
-        if (!s) return true;
-        const tokoLabel = rp.tokoId ? TOKO_LABELS[rp.tokoId] : (rp.tokoName || "—");
-        const haystack = [
-          u.username,
-          u.name || u.nama,
-          u.role,
-          u.toko,
-          tokoLabel,
-          rp.tokoName,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        return haystack.includes(s);
-      })
-      .sort((a, b) => (a.username || "").localeCompare(b.username || ""));
-  }, [users, searchTerm, filterRole, filterTokoId]);
-
-  // ====== PAGINATION ======
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-
-  const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(filteredUsers.length / pageSize)),
-    [filteredUsers.length, pageSize]
-  );
-
-  useEffect(() => {
-    setPage((p) => Math.min(p, totalPages));
-  }, [totalPages]);
-
-  const pageUsers = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredUsers.slice(start, start + pageSize);
-  }, [filteredUsers, page, pageSize]);
-
-  // ====== ringkasan/utility ======
-  const countByRole = useMemo(() => {
-    const acc = { superadmin: 0, pic_toko: 0 };
-    for (const u of users) {
-      const rp = rolePieces(u.role, u.toko);
-      if (rp.base === "superadmin") acc.superadmin += 1;
-      else acc.pic_toko += 1;
-    }
-    return acc;
-  }, [users]);
+  // Jika Anda ingin DataManager hanya muncul untuk superadmin yang login dengan Google
+  // const showDataManager = user?.role === 'superadmin' && isAuthenticated;
+  
+  // Untuk saat ini, kita tampilkan DataManager jika user adalah superadmin/admin
+  const showDataManager = user?.role === 'superadmin' || user?.role === 'admin';
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold">User Management Mila Phone</h1>
-        <p className="text-slate-600">
-          Kelola pengguna, password, role, dan akses toko. Data awal diambil dari <code>src/data/UserManagementRole.jsx</code>.
-          Role <code>pic_toko</code> memakai <em>nama toko</em> (mis. <code>pic_tokoCILANGKAP</code>).
-        </p>
-      </div>
+    <div className="container mx-auto p-4">
+      <h1 className="text-3xl font-bold mb-6 text-gray-800">Manajemen Pengguna Mia Phone</h1>
 
-      {/* ====== Form Tambah ====== */}
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
-        <h2 className="text-lg font-semibold mb-3">Tambah User</h2>
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-          <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">Nama Lengkap (opsional)</label>
-            <input
-              className="w-full border rounded px-2 py-1"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Nama lengkap"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">Username</label>
-            <input
-              className="w-full border rounded px-2 py-1"
-              value={form.username}
-              onChange={(e) => setForm({ ...form, username: e.target.value })}
-              placeholder="username"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">Password</label>
-            <input
-              type="text"
-              className="w-full border rounded px-2 py-1"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              placeholder="password"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">Role</label>
-            <select
-              className="w-full border rounded px-2 py-1"
-              value={form.roleBase}
-              onChange={(e) => setForm({ ...form, roleBase: e.target.value })}
-            >
-              <option value="pic_toko">pic_toko</option>
-              <option value="superadmin">superadmin</option>
-            </select>
-          </div>
-
-          {form.roleBase !== "superadmin" && (
-            <div>
-              <label className="text-xs text-slate-600">Toko (pic_toko)</label>
-              <select
-                className="w-full border rounded px-2 py-1"
-                value={form.tokoId ?? ""}
-                onChange={(e) =>
-                  setForm({ ...form, tokoId: Number(e.target.value) })
-                }
-              >
-                {tokoEntries.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+      {showDataManager && (
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">Sinkronisasi Data Pengguna dengan Google</h2>
+          <DataManager
+            appData={usersForDataManager}
+            setAppData={(newData) => {
+                // Konversi kembali data dari DataManager ke format users lokal jika perlu
+                const updatedUsers = newData.map(item => ({
+                    id: item.id,
+                    username: item.username,
+                    email: item.email,
+                    role: item.role,
+                    toko: item.toko,
+                    password: users.find(u => u.id === item.id)?.password || 'default_password' // Pertahankan password lokal atau set default
+                }));
+                setUsers(updatedUsers);
+            }}
+            dataType="users" // Tipe data 'users' untuk DataManager
+            allowedActions={['export', 'import']} // Hanya export/import untuk user management
+            tokoId={null} // Tidak spesifik toko
+          />
         </div>
+      )}
 
-        <div className="mt-3">
-          <button
-            onClick={addUser}
-            className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm font-semibold shadow-sm"
-          >
-            Tambah
-          </button>
-        </div>
-      </div>
-
-      {/* ====== Filter & Search ====== */}
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-          <div className="md:col-span-2">
-            <label className="text-xs text-slate-600">Cari</label>
-            <input
-              className="w-full border rounded px-2 py-1"
-              placeholder="Cari username, nama, role, atau toko…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">Role</label>
-            <select
-              className="w-full border rounded px-2 py-1"
-              value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value)}
-            >
-              <option value="all">Semua Role</option>
-              <option value="superadmin">superadmin</option>
-              <option value="pic_toko">pic_toko</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">Toko (untuk pic_toko)</label>
-            <select
-              className="w-full border rounded px-2 py-1"
-              value={filterTokoId}
-              onChange={(e) =>
-                setFilterTokoId(e.target.value === "all" ? "all" : Number(e.target.value))
-              }
-            >
-              <option value="all">Semua Toko</option>
-              {tokoEntries.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-600">Item per halaman</label>
-            <select
-              className="w-full border rounded px-2 py-1"
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-            >
-              {[5, 10, 20, 50].map((n) => (
-                <option key={n} value={n}>
-                  {n} / halaman
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="mt-3 text-xs text-slate-500">
-          Menampilkan {pageUsers.length} dari {filteredUsers.length} hasil (total {users.length} user).
-        </div>
-      </div>
-
-      {/* ====== Tabel Users ====== */}
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">Daftar User</h2>
-          <div className="text-sm text-slate-500">
-            SA: {countByRole.superadmin} • PIC: {countByRole.pic_toko}
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-slate-600">
-              <tr>
-                <th className="px-3 py-2 text-left">Username</th>
-                <th className="px-3 py-2 text-left">Password</th>
-                <th className="px-3 py-2 text-left">Nama</th>
-                <th className="px-3 py-2 text-left">Role</th>
-                <th className="px-3 py-2 text-left">Toko</th>
-                <th className="px-3 py-2 text-left">Aksi</th>
+      <div className="overflow-x-auto bg-white shadow-md rounded-lg">
+        <table className="min-w-full leading-normal">
+          <thead>
+            <tr>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Username
+              </th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Email (Google)
+              </th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Role
+              </th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Toko
+              </th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Aksi
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((userItem) => (
+              <tr key={userItem.id}>
+                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                  {userItem.username}
+                </td>
+                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                  {userItem.email || '-'} {/* Tampilkan email jika ada */}
+                </td>
+                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                  {userItem.role}
+                </td>
+                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                  {userItem.toko || '-'}
+                </td>
+                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                  <button
+                    onClick={() => handleEdit(userItem.id)}
+                    className="text-blue-600 hover:text-blue-900 mr-3"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(userItem.id)}
+                    className="text-red-600 hover:text-red-900"
+                  >
+                    Hapus
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {pageUsers.map((u) => {
-                const isEdit = editing === u.username;
-
-                if (isEdit && draft) {
-                  const { roleBase } = draft;
-                  const tokoId =
-                    roleBase === "superadmin"
-                      ? null
-                      : (draft.tokoId ??
-                         rolePieces(draft.role, draft.toko).tokoId ??
-                         tokoEntries[0]?.id ??
-                         null);
-
-                  return (
-                    <tr key={u.username} className="border-b last:border-0 bg-slate-50/50">
-                      <td className="px-3 py-2">
-                        <span className="font-mono">{u.username}</span>
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          className="border rounded px-2 py-1"
-                          value={draft.password}
-                          onChange={(e) =>
-                            setDraft((d) => ({ ...d, password: e.target.value }))
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          className="border rounded px-2 py-1"
-                          value={draft.name || draft.nama || ""}
-                          onChange={(e) =>
-                            setDraft((d) => ({ ...d, name: e.target.value }))
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <select
-                          className="border rounded px-2 py-1"
-                          value={roleBase}
-                          onChange={(e) =>
-                            setDraft((d) => ({ ...d, roleBase: e.target.value }))
-                          }
-                        >
-                          <option value="pic_toko">pic_toko</option>
-                          <option value="superadmin">superadmin</option>
-                        </select>
-                      </td>
-                      <td className="px-3 py-2">
-                        {roleBase === "superadmin" ? (
-                          <span className="text-slate-400">—</span>
-                        ) : (
-                          <select
-                            className="border rounded px-2 py-1"
-                            value={tokoId ?? ""}
-                            onChange={(e) =>
-                              setDraft((d) => ({
-                                ...d,
-                                tokoId: Number(e.target.value),
-                              }))
-                            }
-                          >
-                            {tokoEntries.map((t) => (
-                              <option key={t.id} value={t.id}>
-                                {t.label}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </td>
-                      <td className="px-3 py-2">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={saveEdit}
-                            className="px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700"
-                          >
-                            Simpan
-                          </button>
-                          <button
-                            onClick={cancelEdit}
-                            className="px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200"
-                          >
-                            Batal
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }
-
-                const rp = rolePieces(u.role, u.toko);
-                const tokoLabel =
-                  rp.base === "superadmin"
-                    ? "—"
-                    : rp.tokoId
-                    ? TOKO_LABELS[rp.tokoId]
-                    : (rp.tokoName || u.toko || "—");
-
-                return (
-                  <tr key={u.username} className="border-b last:border-0">
-                    <td className="px-3 py-2">
-                      <span className="font-mono">{u.username}</span>
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className="font-mono">{u.password}</span>
-                    </td>
-                    <td className="px-3 py-2">{u.name || u.nama || "—"}</td>
-                    <td className="px-3 py-2">{rp.base}</td>
-                    <td className="px-3 py-2">{tokoLabel}</td>
-                    <td className="px-3 py-2">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => beginEdit(u)}
-                          className="px-2 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => del(u.username)}
-                          className="px-2 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700"
-                        >
-                          Hapus
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {pageUsers.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
-                    Tidak ada hasil. Coba ubah filter atau kata kunci.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* ====== Pagination controls ====== */}
-        <div className="mt-4 flex flex-col md:flex-row items-center justify-between gap-3">
-          <div className="text-sm text-slate-600">
-            Halaman <strong>{page}</strong> dari <strong>{totalPages}</strong>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className={`px-3 py-1 rounded border text-sm ${
-                page <= 1 ? "bg-slate-100 text-slate-400" : "bg-white hover:bg-slate-50"
-              }`}
-            >
-              ‹ Sebelumnya
-            </button>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              className={`px-3 py-1 rounded border text-sm ${
-                page >= totalPages ? "bg-slate-100 text-slate-400" : "bg-white hover:bg-slate-50"
-              }`}
-            >
-              Berikutnya ›
-            </button>
-          </div>
-        </div>
-
-        <p className="mt-3 text-xs text-slate-500">
-          Data user dibaca dari <code>src/data/UserManagementRole.jsx</code> (lalu disalin ke{" "}
-          <code>localStorage.users</code> agar bisa diedit/tambah/hapus). Role{" "}
-          <code>pic_toko</code> memakai nama toko, mis. <code>pic_tokoCILANGKAP</code>. Nama toko untuk dropdown
-          tetap diambil dari <code>TokoLabels.js</code>.
-        </p>
+            ))}
+          </tbody>
+        </table>
       </div>
+
+      {/* Modal Edit User */}
+      {isModalOpen && editingUser && (
+        <EditUserModal
+          user={editingUser}
+          onSave={handleSaveUser}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
+
+// Komponen Modal Edit User (bisa diletakkan di file terpisah juga)
+const EditUserModal = ({ user, onSave, onClose }) => {
+  const [editedUsername, setEditedUsername] = useState(user.username);
+  const [editedEmail, setEditedEmail] = useState(user.email || ''); // Tambah state email
+  const [editedRole, setEditedRole] = useState(user.role);
+  const [editedToko, setEditedToko] = useState(user.toko || '');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave({
+      ...user,
+      username: editedUsername,
+      email: editedEmail, // Simpan email
+      role: editedRole,
+      toko: editedToko,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+        <h2 className="text-2xl font-bold mb-4">Edit Pengguna</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2">Username:</label>
+            <input
+              type="text"
+              value={editedUsername}
+              onChange={(e) => setEditedUsername(e.target.value)}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2">Email:</label>
+            <input
+              type="email"
+              value={editedEmail}
+              onChange={(e) => setEditedEmail(e.target.value)}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2">Role:</label>
+            <select
+              value={editedRole}
+              onChange={(e) => setEditedRole(e.target.value)}
+              className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            >
+              <option value="superadmin">Superadmin</option>
+              <option value="admin">Admin</option>
+              <option value="pic_toko">PIC Toko</option>
+            </select>
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2">Toko (jika PIC Toko):</label>
+            <input
+              type="text"
+              value={editedToko}
+              onChange={(e) => setEditedToko(e.target.value)}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            />
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded mr-2"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Simpan
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
