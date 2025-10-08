@@ -11,7 +11,7 @@ const TOKO_LABELS = {
   7: "METLAND 2",
   8: "PITARA",
   9: "KOTA WISATA",
-  10: "TOKO 10", // fallback, silakan ganti jika ada nama resmi
+  10: "SAWANGAN", // fallback, silakan ganti jika ada nama resmi
 };
 
 export default TOKO_LABELS;
