@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '../components/GoogleAuth/AuthContext';
-import { convertArrayOfObjectsToCSV, convertCSVToArrayOfObjects } from '../utils/dataTransformers';
+import { convertArrayOfObjectsToCSV, convertCSVToArrayOfObjects, SHEET_HEADERS } from '../utils/dataTransformers'; // <-- IMPORT SHEET_HEADERS
 
 export const useGoogleDrive = () => {
   const { accessToken, isAuthenticated } = useAuth();
@@ -98,17 +98,22 @@ export const useGoogleDrive = () => {
   }, [isAuthenticated, accessToken]); // Dependencies untuk useCallback
 
   // Backup app data (e.g., array of objects) to Drive as a CSV file
-  const backupAppDataToDrive = useCallback(async (appData, fileNamePrefix = 'backup_mila_phone') => {
+  const backupAppDataToDrive = useCallback(async (appData, dataTypeKey, fileNamePrefix = 'backup_mila_phone') => {
     if (!appData || appData.length === 0) {
       setDriveError('No data to backup.');
       return null;
     }
+    if (!SHEET_HEADERS[dataTypeKey.toUpperCase()]) {
+      setDriveError(`Invalid dataTypeKey: ${dataTypeKey}. Check SHEET_HEADERS configuration.`);
+      return null;
+    }
 
     const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-    const fileName = `${fileNamePrefix}_${timestamp}.csv`;
+    const fileName = `${fileNamePrefix}_${dataTypeKey}_${timestamp}.csv`;
     
-    // Konversi array of objects menjadi string CSV
-    const csvContent = convertArrayOfObjectsToCSV(appData);
+    // Gunakan headers yang sesuai dari SHEET_HEADERS untuk CSV
+    const headers = SHEET_HEADERS[dataTypeKey.toUpperCase()];
+    const csvContent = convertArrayOfObjectsToCSV(appData, headers);
 
     // Panggil fungsi uploadFile
     return await uploadFile(fileName, csvContent, 'text/csv');
@@ -120,6 +125,7 @@ export const useGoogleDrive = () => {
     if (!csvContent) return null;
 
     // Asumsi format CSV mengandung header di baris pertama
+    // convertCSVToArrayOfObjects akan membaca header dari CSV itu sendiri
     const restoredData = convertCSVToArrayOfObjects(csvContent);
     console.log('Data restored from Drive:', restoredData.length, 'records');
     return restoredData;
@@ -190,6 +196,6 @@ export const useGoogleDrive = () => {
     backupAppDataToDrive,
     restoreAppDataFromDrive,
     listDriveFiles,
-    isReady: isAuthenticated // Menunjukkan apakah hook siap digunakan (setelah autentikasi)
+    isReady: isAuthenticated // Siap untuk interaksi Drive
   };
 };

@@ -1,4 +1,4 @@
-// src/App.jsx - MODIFIED VERSION
+// src/App.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   BrowserRouter as Router,
@@ -8,10 +8,10 @@ import {
   useParams,
 } from "react-router-dom";
 
-import { AuthProvider, useAuth } from "./components/GoogleAuth/AuthContext"; // NEW IMPORT
-
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
+
+/* Pages */
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import SalesReport from "./pages/Reports/SalesReport";
@@ -23,39 +23,42 @@ import ServiceHandphone from "./pages/ServiceHandphone";
 import ServiceMotorListrik from "./pages/ServiceMotorListrik";
 import PenjualanHandphone from "./pages/PenjualanHandphone";
 import PenjualanMotorListrik from "./pages/PenjualanMotorListrik";
-// import DataManagement from "./pages/DataManagement"; // Hapus import ini jika sudah ada DataManager di components
+import PenjualanAccessories from "./pages/PenjualanAccessories";
+import DataManagement from "./pages/DataManagement";
+import TransferBarangPusat from "./pages/Reports/TransferBarangPusat";
+import PembelianProdukPusat from "./pages/PembelianProdukPusat";
 
-// === Halaman stok baru (per halaman) ===
+/* Stock pages (pusat & per toko) */
 import StockAccessories from "./pages/stock/StockAccessories";
 import StockHandphone from "./pages/stock/StockHandphone";
 import StockMotorListrik from "./pages/stock/StockMotorListrik";
+import StockAccessoriesPusat from "./pages/stock/StockAccessoriesPusat";
+import StockHandphonePusat from "./pages/stock/StockHandphonePusat";
+import StockMotorListrikPusat from "./pages/stock/StockMotorListrikPusat";
+
+/* Transaksi / Dokumen */
 import InputPenjualan from "./pages/InputPenjualan";
 import StrukPenjualan from "./pages/StrukPenjualan";
 import StrukPenjualanIMEI from "./pages/StrukPenjualanIMEI";
 import SuratJalan from "./pages/SuratJalan";
 import Invoice from "./pages/Invoice";
+
+/* Dashboard toko */
 import DashboardToko from "./pages/DashboardToko";
 
+/* Guards */
 import ProtectedRoute from "./components/ProtectedRoute";
+
+/* Default users (fallback jika LS kosong) */
 import defaultUsers from "./data/UserManagementRole";
-import PenjualanAccessories from "./pages/PenjualanAccessories";
-import TransferBarangPusat from "./pages/Reports/TransferBarangPusat";
-import PembelianProdukPusat from "./pages/PembelianProdukPusat";
+import FinanceReportMonthly from './pages/Reports/FinanceReportMonthly';
+import FinanceReport from './pages/Reports/FinanceReport';
 
-import StockAccessoriesPusat from "./pages/stock/StockAccessoriesPusat";
-import StockHandphonePusat from "./pages/stock/StockHandphonePusat";
-import StockMotorListrikPusat from "./pages/stock/StockMotorListrikPusat";
-import FinanceReport from "./pages/Reports/FinanceReport";
-import FinanceReportMonthly from "./pages/Reports/FinanceReportMonthly";
-
-// NEW IMPORTS for Google Integration
-import DataManager from "./components/DataManager/DataManager";
-
-// ---------- dummy data toko ----------
+/* ---------- Dummy data toko (contoh) ---------- */
 const generateDummyData = (tokoName) =>
   Array.from({ length: 10 }, (_, i) => ({
     id: i + 1,
-    tanggal: `2025-08-${(i + 1).toString().padStart(2, "0")}`,
+    tanggal: `2025-08-${String(i + 1).padStart(2, "0")}`,
     kategori: ["Accessories", "Handphone", "Motor Listrik", "Service"][i % 4],
     produk: `${tokoName} Produk ${i + 1}`,
     qty: Math.floor(Math.random() * 5) + 1,
@@ -74,8 +77,20 @@ const initialTokoData = {
   9: generateDummyData("KOTA WISATA"),
 };
 
-function AppContent() {
-  // ===== Session user =====
+/* ===== Util: Ambil toko-id yang diperbolehkan untuk PIC ===== */
+function getAllowedTokoIdFromUser(u) {
+  if (!u) return null;
+  if (u.role === "superadmin" || u.role === "admin") return null; // bebas
+  if (u.role?.startsWith("pic_toko")) {
+    const fromRole = Number(String(u.role).replace("pic_toko", "")) || null;
+    const fromField = Number(u.toko) || null;
+    return fromField ?? fromRole ?? 1;
+  }
+  return null;
+}
+
+export default function App() {
+  /* ===== Session user ===== */
   const [user, setUser] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("user"));
@@ -92,7 +107,7 @@ function AppContent() {
   const handleLogin = (u) => setUser(u);
   const handleLogout = () => setUser(null);
 
-  // ===== Sumber data user =====
+  /* ===== Sumber data user ===== */
   const [users, setUsers] = useState(() => {
     try {
       const ls = JSON.parse(localStorage.getItem("users"));
@@ -113,53 +128,26 @@ function AppContent() {
     });
   };
 
-  // ===== Data toko (const) =====
-  // Kita akan menggunakan state untuk data toko ini, agar bisa di-update dari Google Sheets
-  const [currentTokoData, setCurrentTokoData] = useState(initialTokoData);
+  /* ===== Data toko (memo) ===== */
+  const tokoData = useMemo(() => initialTokoData, []);
 
-  // Fungsi untuk mengupdate data toko (misalnya setelah import dari Sheets)
-  const updateTokoData = (tokoId, newData) => {
-    setCurrentTokoData((prev) => ({
-      ...prev,
-      [tokoId]: newData,
-    }));
-  };
-
-  // ===== Guard: pic_toko hanya boleh akses tokonya =====
+  /* ===== Guards untuk halaman /toko/:id (dashboard & stock by toko) ===== */
   const TokoGuard = ({ id }) => {
     const tokoId = Number(id);
 
-    if (user?.role === "superadmin" || user?.role === "admin") { // Admin juga bisa lihat semua toko
-      return (
-        <DashboardToko
-          user={user}
-          tokoId={tokoId}
-          appData={currentTokoData[tokoId]} // Pakai state data toko
-          setAppData={(newData) => updateTokoData(tokoId, newData)} // Fungsi update
-        />
-      );
+    // Admin/superadmin: bebas lihat toko mana pun
+    if (user?.role === "superadmin" || user?.role === "admin") {
+      return <DashboardToko user={user} tokoId={tokoId} initialData={tokoData[tokoId]} />;
     }
 
+    // PIC toko: hanya boleh ke tokonya
     if (user?.role?.startsWith("pic_toko")) {
-      const allowed =
-        Number(user.toko) ||
-        Number(String(user.role).replace("pic_toko", "")) ||
-        1;
-
-      if (allowed !== tokoId) {
-        return <Navigate to={`/toko/${allowed}`} replace />;
-      }
-
-      return (
-        <DashboardToko
-          user={user}
-          tokoId={tokoId}
-          appData={currentTokoData[tokoId]} // Pakai state data toko
-          setAppData={(newData) => updateTokoData(tokoId, newData)} // Fungsi update
-        />
-      );
+      const allowed = getAllowedTokoIdFromUser(user) ?? 1;
+      if (allowed !== tokoId) return <Navigate to={`/toko/${allowed}`} replace />;
+      return <DashboardToko user={user} tokoId={tokoId} initialData={tokoData[tokoId]} />;
     }
 
+    // Lainnya diarahkan ke dashboard
     return <Navigate to="/dashboard" replace />;
   };
 
@@ -168,29 +156,17 @@ function AppContent() {
     return <TokoGuard id={id} />;
   };
 
-  // ===== Guard halaman stok per toko (akan diupdate serupa) =====
-  // Untuk kesederhanaan, saya hanya akan menunjukkan bagaimana mengimplementasikan
-  // DataManager di DashboardToko. Anda bisa mengadaptasi GuardedAccessories, dll.
-  // dengan pola yang sama jika Anda ingin DataManager di sana juga.
-
   const GuardedAccessories = () => {
     const { id } = useParams();
     const tokoId = Number(id);
 
-    if (user?.role === "superadmin" || user?.role === "admin") {
-      return <StockAccessories />;
-    }
+    if (user?.role === "superadmin" || user?.role === "admin") return <StockAccessories />;
 
     if (user?.role?.startsWith("pic_toko")) {
-      const allowed =
-        Number(user.toko) ||
-        Number(String(user.role).replace("pic_toko", "")) ||
-        1;
-      if (allowed !== tokoId)
-        return <Navigate to={`/toko/${allowed}`} replace />;
+      const allowed = getAllowedTokoIdFromUser(user) ?? 1;
+      if (allowed !== tokoId) return <Navigate to={`/toko/${allowed}`} replace />;
       return <StockAccessories />;
     }
-
     return <Navigate to="/dashboard" replace />;
   };
 
@@ -198,20 +174,13 @@ function AppContent() {
     const { id } = useParams();
     const tokoId = Number(id);
 
-    if (user?.role === "superadmin" || user?.role === "admin") {
-      return <StockHandphone />;
-    }
+    if (user?.role === "superadmin" || user?.role === "admin") return <StockHandphone />;
 
     if (user?.role?.startsWith("pic_toko")) {
-      const allowed =
-        Number(user.toko) ||
-        Number(String(user.role).replace("pic_toko", "")) ||
-        1;
-      if (allowed !== tokoId)
-        return <Navigate to={`/toko/${allowed}`} replace />;
+      const allowed = getAllowedTokoIdFromUser(user) ?? 1;
+      if (allowed !== tokoId) return <Navigate to={`/toko/${allowed}`} replace />;
       return <StockHandphone />;
     }
-
     return <Navigate to="/dashboard" replace />;
   };
 
@@ -219,76 +188,60 @@ function AppContent() {
     const { id } = useParams();
     const tokoId = Number(id);
 
-    if (user?.role === "superadmin" || user?.role === "admin") {
-      return <StockMotorListrik />;
-    }
+    if (user?.role === "superadmin" || user?.role === "admin") return <StockMotorListrik />;
 
     if (user?.role?.startsWith("pic_toko")) {
-      const allowed =
-        Number(user.toko) ||
-        Number(String(user.role).replace("pic_toko", "")) ||
-        1;
-      if (allowed !== tokoId)
-        return <Navigate to={`/toko/${allowed}`} replace />;
+      const allowed = getAllowedTokoIdFromUser(user) ?? 1;
+      if (allowed !== tokoId) return <Navigate to={`/toko/${allowed}`} replace />;
       return <StockMotorListrik />;
     }
-
     return <Navigate to="/dashboard" replace />;
   };
 
   return (
     <Router>
       {!user ? (
-        // ===== Belum login =====
+        /* ===== Belum login ===== */
         <Routes>
-          <Route
-            path="/"
-            element={<Login onLogin={handleLogin} users={users} />}
-          />
+          <Route path="/" element={<Login onLogin={handleLogin} users={users} />} />
           <Route path="/register" element={<Register addUser={addUser} />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       ) : (
-        // ===== Sudah login =====
-        <div className="flex h-screen">
+        /* ===== Sudah login ===== */
+        <div className="flex h-screen overflow-hidden">
           <Sidebar role={user.role} toko={user.toko} onLogout={handleLogout} />
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 min-w-0 flex flex-col">
             <Navbar user={user} onLogout={handleLogout} />
-            <div className="flex-1 p-4 overflow-y-auto">
+            <main className="flex-1 min-w-0 overflow-y-auto p-4">
               <Routes>
                 <Route path="/" element={<Navigate to="/dashboard" />} />
 
-                {/* Dashboard umum */}
+                {/* Dashboard utama (pusat) */}
                 <Route
                   path="/dashboard"
                   element={
-                    <ProtectedRoute
-                      allowedRoles={["superadmin", "admin", "pic_toko"]}
-                    >
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <Dashboard user={user} />
                     </ProtectedRoute>
                   }
                 />
 
-                {/* Dashboard per toko */}
+                {/* Dashboard per toko (guard PIC → hanya tokonya) */}
                 <Route
                   path="/toko/:id"
                   element={
-                    <ProtectedRoute
-                      allowedRoles={["superadmin", "admin", "pic_toko"]}
-                    >
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <TokoRoute />
                     </ProtectedRoute>
                   }
                 />
 
-                {/* Halaman Stok per toko */}
+                {/* Stok per toko */}
                 <Route
                   path="/toko/:id/stock-accessories"
                   element={
-                    <ProtectedRoute
-                      allowedRoles={["superadmin", "admin", "pic_toko"]}
-                    >
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <GuardedAccessories />
                     </ProtectedRoute>
                   }
@@ -296,9 +249,7 @@ function AppContent() {
                 <Route
                   path="/toko/:id/stock-handphone"
                   element={
-                    <ProtectedRoute
-                      allowedRoles={["superadmin", "admin", "pic_toko"]}
-                    >
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <GuardedHandphone />
                     </ProtectedRoute>
                   }
@@ -306,9 +257,7 @@ function AppContent() {
                 <Route
                   path="/toko/:id/stock-motor-listrik"
                   element={
-                    <ProtectedRoute
-                      allowedRoles={["superadmin", "admin", "pic_toko"]}
-                    >
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
                       <GuardedMotor />
                     </ProtectedRoute>
                   }
@@ -319,7 +268,7 @@ function AppContent() {
                   path="/user-management"
                   element={
                     <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
-                      <UserManagement users={users} setUsers={setUsers} /> {/* Teruskan users state */}
+                      <UserManagement />
                     </ProtectedRoute>
                   }
                 />
@@ -367,22 +316,41 @@ function AppContent() {
                   path="/products"
                   element={
                     <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
-                      {/* Anda mungkin ingin DataManager di sini juga untuk data produk */}
                       <Products />
                     </ProtectedRoute>
                   }
                 />
                 <Route
-                  path="/google-data-manager"
+                  path="/data-management"
                   element={
                     <ProtectedRoute allowedRoles={["superadmin", "admin"]}>
-                      {/* DataManager umum untuk superadmin/admin */}
-                      <DataManager 
-                        appData={currentTokoData[1]} // Contoh: data toko 1 sebagai default
-                        setAppData={(newData) => updateTokoData(1, newData)}
-                        dataType="dashboard_overall" // Tipe data umum
-                        tokoId={null} // Tidak spesifik toko
-                      />
+                      <DataManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/transfer-barang-pusat"
+                  element={
+                    <ProtectedRoute allowedRoles={["superadmin"]}>
+                      <TransferBarangPusat />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Modul yang juga boleh untuk PIC (sesuai kebutuhan Anda bisa longgarkan) */}
+                <Route
+                  path="/service-handphone"
+                  element={
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
+                      <ServiceHandphone user={user} />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/service-motor-listrik"
+                  element={
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
+                      <ServiceMotorListrik user={user} />
                     </ProtectedRoute>
                   }
                 />
@@ -403,15 +371,23 @@ function AppContent() {
                   }
                 />
                 <Route
-                  path="/transfer-barang-pusat"
+                  path="/struk-penjualan"
                   element={
-                    <ProtectedRoute allowedRoles={["superadmin"]}>
-                      <TransferBarangPusat />
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
+                      <StrukPenjualan />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/struk-penjualan-imei"
+                  element={
+                    <ProtectedRoute allowedRoles={["superadmin", "admin", "pic_toko"]}>
+                      <StrukPenjualanIMEI />
                     </ProtectedRoute>
                   }
                 />
 
-                {/* Modul yang juga boleh untuk pic_toko */}
+                {/* (Opsional) Modul penjualan pusat — saat ini khusus admin/superadmin */}
                 <Route
                   path="/penjualan-handphone"
                   element={
@@ -444,91 +420,14 @@ function AppContent() {
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="/service-handphone"
-                  element={
-                    <ProtectedRoute
-                      allowedRoles={["superadmin", "admin", "pic_toko"]}
-                    >
-                      <ServiceHandphone user={user} />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/service-motor-listrik"
-                  element={
-                    <ProtectedRoute
-                      allowedRoles={["superadmin", "admin", "pic_toko"]}
-                    >
-                      <ServiceMotorListrik user={user} />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/stock-handphone-pusat"
-                  element={
-                    <ProtectedRoute allowedRoles={["superadmin"]}>
-                      <StockHandphonePusat user={user} />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/stock-accessories-pusat"
-                  element={
-                    <ProtectedRoute allowedRoles={["superadmin"]}>
-                      <StockAccessoriesPusat user={user} />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/stock-motor-listrik-pusat"
-                  element={
-                    <ProtectedRoute allowedRoles={["superadmin"]}>
-                      <StockMotorListrikPusat user={user} />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/struk-penjualan"
-                  element={
-                    <ProtectedRoute
-                      allowedRoles={["superadmin", "admin", "pic_toko"]}
-                    >
-                      <StrukPenjualan />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/struk-penjualan-imei"
-                  element={
-                    <ProtectedRoute
-                      allowedRoles={["superadmin", "admin", "pic_toko"]}
-                    >
-                      <StrukPenjualanIMEI />
-                    </ProtectedRoute>
-                  }
-                />
 
                 {/* Fallback */}
-                <Route path="*" element={<Navigate to="/dashboard" />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
-            </div>
+            </main>
           </div>
         </div>
       )}
     </Router>
-  );
-}
-
-// Komponen pembungkus AppContent dengan AuthProvider
-export default function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
   );
 }
