@@ -237,16 +237,7 @@ const Sidebar = ({ role, toko, onLogout }) => {
                     <span className="ml-2">Laporan Keuangan</span>
                   </Link>
                 </li>
-                {/* Transfer Pusat */}
-                <li>
-                  <Link
-                    to="/transfer-barang-pusat"
-                    className="flex items-center p-2 hover:bg-blue-500"
-                  >
-                    <FiBox className="text-lg" />
-                    <span className="ml-2">Transfer Barang Gudang Pusat</span>
-                  </Link>
-                </li>
+             
               </ul>
             )}
 
@@ -421,6 +412,16 @@ const Sidebar = ({ role, toko, onLogout }) => {
             </button>
             {showSubMenuStruk && (
               <ul className="pl-6">
+                   {/* Transfer Pusat */}
+                   <li>
+                  <Link
+                    to="/transfer-barang-pusat"
+                    className="flex items-center p-2 hover:bg-blue-500"
+                  >
+                    <FiBox className="text-lg" />
+                    <span className="ml-2">Transfer Barang Gudang Pusat Mila Phone</span>
+                  </Link>
+                </li>
                 <li>
                   <Link to="/struk-penjualan" className="block pl-6 py-1 hover:bg-blue-600 rounded">
                     Struk Faktur Penjualan
