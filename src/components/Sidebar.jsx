@@ -17,6 +17,7 @@ import {
   FaCartPlus,
   FaMoneyCheckAlt,
   FaCashRegister,
+  FaCogs, // ⟵ added for Sparepart
 } from "react-icons/fa";
 import { AiFillPhone, AiOutlineDatabase } from "react-icons/ai";
 import { BsGraphUp, BsTagsFill, BsFileEarmarkText } from "react-icons/bs";
@@ -382,6 +383,12 @@ const Sidebar = ({ role, toko, onLogout }) => {
               </ul>
             )}
 
+            {/* MODUL SPAREPART (new) */}
+            <Link to="/modul-sparepart" className="flex items-center p-3 hover:bg-blue-500">
+              <FaCogs className="text-xl" />
+              <span className="ml-2">MODUL SPAREPART</span>
+            </Link>
+
             {/* KEUANGAN */}
             <Link to="/Finance-report" className="flex items-center p-3 hover:bg-blue-500">
               <FaMoneyCheckAlt className="text-xl" />
@@ -500,6 +507,12 @@ const Sidebar = ({ role, toko, onLogout }) => {
                 </li>
               </ul>
             )}
+
+            {/* MODUL SPAREPART (new) */}
+            <Link to="/modul-sparepart" className="flex items-center p-3 hover:bg-blue-500">
+              <FaCogs className="text-xl" />
+              <span className="ml-2">MODUL SPAREPART</span>
+            </Link>
 
             {/* CETAK FAKTUR */}
             <button

@@ -1,3 +1,4 @@
+
 // src/pages/DataManagement.jsx
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import * as XLSX from "xlsx";
@@ -65,21 +66,30 @@ function setLS(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+/* ===== safeText helper to avoid rendering objects directly ===== */
+const safeText = (v) => {
+  if (v == null) return "";
+  if (typeof v === "object") {
+    try {
+      return JSON.stringify(v);
+    } catch {
+      return "[Object]";
+    }
+  }
+  return String(v);
+};
+
 /* ===== Parser helpers (Excel) ===== */
 const normHeaders = (row) =>
   Object.fromEntries(
     Object.entries(row || {}).map(([k, v]) => [
-      String(k || "")
-        .toLowerCase()
-        .trim(),
+      String(k || "").toLowerCase().trim(),
       v,
     ])
   );
 
 const slugSheet = (n) =>
-  String(n || "")
-    .toLowerCase()
-    .replace(/\s+/g, "");
+  String(n || "").toLowerCase().replace(/\s+/g, "");
 
 function parseSheetHarga(json) {
   const rows = (json || []).map(normHeaders);
@@ -287,6 +297,18 @@ export default function DataManagement() {
       );
       return Array.isArray(saved) && saved.length
         ? saved
+            .map((x) => ({
+              brand: String(x?.brand || "").trim(),
+              name: String(x?.name || "").trim(),
+              warna: x?.warna ? String(x.warna).trim() : "",
+              srp: toNumber(x?.srp),
+              grosir: toNumber(x?.grosir),
+              harga: toNumber(x?.harga || x?.grosir || x?.srp || 0),
+              kategori: x?.kategori ? String(x.kategori).trim() : "",
+              baterai: x?.baterai ? String(x.baterai).trim() : "",
+              charger: x?.charger ? String(x.charger).trim() : "",
+            }))
+            .filter(Boolean)
         : (HARGA_PENJUALAN || []).map((x) => ({
             brand: x.brand,
             name: x.name,
@@ -331,9 +353,7 @@ export default function DataManagement() {
         mpProtectOptions: base.mpProtectOptions?.length
           ? base.mpProtectOptions
           : MP_PROTECT_OPTIONS,
-        tenorOptions: base.tenorOptions?.length
-          ? base.tenorOptions
-          : TENOR_OPTIONS,
+        tenorOptions: base.tenorOptions?.length ? base.tenorOptions : TENOR_OPTIONS,
         brandList: base.brandList?.length ? base.brandList : BRAND_LIST,
         productList: base.productList?.length ? base.productList : PRODUCT_LIST,
         warnaList: base.warnaList?.length ? base.warnaList : WARNA_LIST,
@@ -416,15 +436,15 @@ export default function DataManagement() {
 
   const addRow = () => {
     const row = {
-      brand: form.brand,
-      name: form.name,
-      warna: form.warna,
-      baterai: form.baterai || "",
-      charger: form.charger || "",
+      brand: String(form.brand || "").trim(),
+      name: String(form.name || "").trim(),
+      warna: String(form.warna || "").trim(),
+      baterai: form.baterai ? String(form.baterai).trim() : "",
+      charger: form.charger ? String(form.charger).trim() : "",
       srp: toNumber(form.srp),
       grosir: toNumber(form.grosir),
       harga: toNumber(form.harga || form.grosir || form.srp),
-      kategori: form.kategori || "",
+      kategori: form.kategori ? String(form.kategori).trim() : "",
     };
     setMaster((prev) => [row, ...prev]);
     setForm({
@@ -445,9 +465,9 @@ export default function DataManagement() {
     const r = master[masterIdx];
     if (!r) return;
     setForm({
-      brand: r.brand,
-      name: r.name,
-      warna: r.warna,
+      brand: String(r.brand || ""),
+      name: String(r.name || ""),
+      warna: r.warna || "",
       baterai: r.baterai || "",
       charger: r.charger || "",
       srp: r.srp,
@@ -466,15 +486,15 @@ export default function DataManagement() {
       return;
     }
     const row = {
-      brand: form.brand,
-      name: form.name,
-      warna: form.warna,
-      baterai: form.baterai || "",
-      charger: form.charger || "",
+      brand: String(form.brand || "").trim(),
+      name: String(form.name || "").trim(),
+      warna: String(form.warna || "").trim(),
+      baterai: form.baterai ? String(form.baterai).trim() : "",
+      charger: form.charger ? String(form.charger).trim() : "",
       srp: toNumber(form.srp),
       grosir: toNumber(form.grosir),
       harga: toNumber(form.harga || form.grosir || form.srp),
-      kategori: form.kategori || "",
+      kategori: form.kategori ? String(form.kategori).trim() : "",
     };
     setMaster((prev) => prev.map((x, i) => (i === idx ? row : x)));
     setForm({
@@ -604,15 +624,15 @@ export default function DataManagement() {
       wb,
       XLSX.utils.json_to_sheet(
         (master || []).map((r) => ({
-          Brand: r.brand,
-          Type: r.name,
-          Warna: r.warna,
+          Brand: safeText(r.brand),
+          Type: safeText(r.name),
+          Warna: safeText(r.warna),
           SRP: r.srp,
           Grosir: r.grosir,
           Harga: r.harga,
-          Kategori: r.kategori,
-          Baterai: r.baterai || "",
-          Charger: r.charger || "",
+          Kategori: safeText(r.kategori),
+          Baterai: safeText(r.baterai || ""),
+          Charger: safeText(r.charger || ""),
         }))
       ),
       "Harga"
@@ -630,11 +650,11 @@ export default function DataManagement() {
         );
         for (let i = 0; i < rows; i += 1) {
           katalogFlat.push({
-            Brand: b.brand,
-            Type: p.name,
-            Warna: p.warna?.[i] || "",
-            Baterai: p.baterai?.[i] || "",
-            Charger: p.charger?.[i] || "",
+            Brand: safeText(b.brand),
+            Type: safeText(p.name),
+            Warna: safeText(p.warna?.[i] || ""),
+            Baterai: safeText(p.baterai?.[i] || ""),
+            Charger: safeText(p.charger?.[i] || ""),
           });
         }
       }
@@ -650,13 +670,13 @@ export default function DataManagement() {
       wb,
       XLSX.utils.json_to_sheet(
         (sales || []).map((s) => ({
-          Toko: s.toko,
-          Store: s.store,
-          Nama: s.name,
-          NIK: s.nik,
-          SH: s.sh,
-          SL: s.sl,
-          Tuyul: s.tuyul,
+          Toko: safeText(s.toko),
+          Store: safeText(s.store),
+          Nama: safeText(s.name),
+          NIK: safeText(s.nik),
+          SH: safeText(s.sh),
+          SL: safeText(s.sl),
+          Tuyul: safeText(s.tuyul),
         }))
       ),
       "Sales"
@@ -667,9 +687,9 @@ export default function DataManagement() {
       wb,
       XLSX.utils.json_to_sheet(
         (mdrRules || []).map((m) => ({
-          Method: m.method,
-          Toko: m.toko,
-          Brand: m.brand,
+          Method: safeText(m.method),
+          Toko: safeText(m.toko),
+          Brand: safeText(m.brand),
           "MDR%": m.mdrPct,
         }))
       ),
@@ -683,9 +703,9 @@ export default function DataManagement() {
         (tenorRules || []).map((t) => ({
           Tenor: t.tenor,
           "Bunga%": t.bungaPct,
-          Method: t.method || "",
-          Brand: t.brand || "",
-          Toko: t.toko || "",
+          Method: safeText(t.method || ""),
+          Brand: safeText(t.brand || ""),
+          Toko: safeText(t.toko || ""),
         }))
       ),
       "Tenor"
@@ -697,7 +717,7 @@ export default function DataManagement() {
       XLSX.utils.json_to_sheet(
         Object.entries(tokoLabels || {}).map(([id, name]) => ({
           ID: id,
-          Toko: name,
+          Toko: safeText(name),
         }))
       ),
       "Toko"
@@ -707,21 +727,21 @@ export default function DataManagement() {
     XLSX.utils.book_append_sheet(
       wb,
       XLSX.utils.json_to_sheet(
-        (refs.paymentMethods || []).map((x) => ({ Method: x }))
+        (refs.paymentMethods || []).map((x) => ({ Method: safeText(x) }))
       ),
       "PaymentMethods"
     );
     XLSX.utils.book_append_sheet(
       wb,
       XLSX.utils.json_to_sheet(
-        (refs.priceCategories || []).map((x) => ({ Kategori: x }))
+        (refs.priceCategories || []).map((x) => ({ Kategori: safeText(x) }))
       ),
       "PriceCategories"
     );
     XLSX.utils.book_append_sheet(
       wb,
       XLSX.utils.json_to_sheet(
-        (refs.mpProtectOptions || []).map((x) => ({ Opsi: x }))
+        (refs.mpProtectOptions || []).map((x) => ({ Opsi: safeText(x) }))
       ),
       "MPProtect"
     );
@@ -778,16 +798,12 @@ export default function DataManagement() {
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet([
-        { Method: "Cash", Toko: "CIRACAS", Brand: "", "MDR%": 0 },
-      ]),
+      XLSX.utils.json_to_sheet([{ Method: "Cash", Toko: "CIRACAS", Brand: "", "MDR%": 0 }]),
       "MDR"
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet([
-        { Tenor: 6, "Bunga%": 2.5, Method: "Kredit", Brand: "", Toko: "" },
-      ]),
+      XLSX.utils.json_to_sheet([{ Tenor: 6, "Bunga%": 2.5, Method: "Kredit", Brand: "", Toko: "" }]),
       "Tenor"
     );
     XLSX.utils.book_append_sheet(
@@ -801,11 +817,7 @@ export default function DataManagement() {
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet([
-        { Method: "Cash" },
-        { Method: "Transfer" },
-        { Method: "Kredit" },
-      ]),
+      XLSX.utils.json_to_sheet([{ Method: "Cash" }, { Method: "Transfer" }, { Method: "Kredit" }]),
       "PaymentMethods"
     );
     XLSX.utils.book_append_sheet(
@@ -815,10 +827,7 @@ export default function DataManagement() {
     );
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.json_to_sheet([
-        { Opsi: "Proteck Silver" },
-        { Opsi: "Proteck Gold" },
-      ]),
+      XLSX.utils.json_to_sheet([{ Opsi: "Proteck Silver" }, { Opsi: "Proteck Gold" }]),
       "MPProtect"
     );
     XLSX.writeFile(wb, "DataLaporanMilaPhone_TEMPLATE.xlsx");
@@ -971,7 +980,7 @@ export default function DataManagement() {
     <div className="p-4 space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-xl md:text-2xl font-bold">
-          Data Management (Master Data) Mila Phone
+          Data Management (Master Data) Mila Phone Pusat
         </h2>
         <div className="flex items-center gap-2">
           <button
@@ -1156,15 +1165,16 @@ export default function DataManagement() {
               const masterIdx = master.indexOf(r);
               return (
                 <tr key={masterIdx} className="border-t">
-                  <td className="p-2">{r.brand}</td>
-                  <td className="p-2">{r.name}</td>
-                  <td className="p-2">{r.warna}</td>
-                  <td className="p-2">{r.baterai || "-"}</td>
-                  <td className="p-2">{r.charger || "-"}</td>
+                  {/* render aman: pastikan bukan object */}
+                  <td className="p-2">{safeText(r.brand)}</td>
+                  <td className="p-2">{safeText(r.name)}</td>
+                  <td className="p-2">{safeText(r.warna)}</td>
+                  <td className="p-2">{safeText(r.baterai || "-")}</td>
+                  <td className="p-2">{safeText(r.charger || "-")}</td>
                   <td className="p-2">{fmt(r.srp)}</td>
                   <td className="p-2">{fmt(r.grosir)}</td>
                   <td className="p-2">{fmt(r.harga)}</td>
-                  <td className="p-2">{r.kategori}</td>
+                  <td className="p-2">{safeText(r.kategori)}</td>
                   <td className="p-2">
                     <div className="flex gap-2">
                       <button
@@ -1361,13 +1371,13 @@ export default function DataManagement() {
               <tbody>
                 {(sales || []).map((s, i) => (
                   <tr key={i} className="border-t">
-                    <td className="p-2">{s.toko}</td>
-                    <td className="p-2">{s.store}</td>
-                    <td className="p-2">{s.name}</td>
-                    <td className="p-2">{s.nik}</td>
-                    <td className="p-2">{s.sh}</td>
-                    <td className="p-2">{s.sl}</td>
-                    <td className="p-2">{s.tuyul}</td>
+                    <td className="p-2">{safeText(s.toko)}</td>
+                    <td className="p-2">{safeText(s.store)}</td>
+                    <td className="p-2">{safeText(s.name)}</td>
+                    <td className="p-2">{safeText(s.nik)}</td>
+                    <td className="p-2">{safeText(s.sh)}</td>
+                    <td className="p-2">{safeText(s.sl)}</td>
+                    <td className="p-2">{safeText(s.tuyul)}</td>
                     <td className="p-2">
                       <button
                         onClick={() => delSales(i)}
@@ -1447,9 +1457,9 @@ export default function DataManagement() {
               <tbody>
                 {(mdrRules || []).map((m, i) => (
                   <tr key={i} className="border-t">
-                    <td className="p-2">{m.method}</td>
-                    <td className="p-2">{m.toko || "-"}</td>
-                    <td className="p-2">{m.brand || "-"}</td>
+                    <td className="p-2">{safeText(m.method)}</td>
+                    <td className="p-2">{safeText(m.toko || "-")}</td>
+                    <td className="p-2">{safeText(m.brand || "-")}</td>
                     <td className="p-2 text-right">{m.mdrPct}</td>
                     <td className="p-2">
                       <button
@@ -1544,9 +1554,9 @@ export default function DataManagement() {
                   <tr key={i} className="border-t">
                     <td className="p-2 text-right">{t.tenor}</td>
                     <td className="p-2 text-right">{t.bungaPct}</td>
-                    <td className="p-2">{t.method || "-"}</td>
-                    <td className="p-2">{t.brand || "-"}</td>
-                    <td className="p-2">{t.toko || "-"}</td>
+                    <td className="p-2">{safeText(t.method || "-")}</td>
+                    <td className="p-2">{safeText(t.brand || "-")}</td>
+                    <td className="p-2">{safeText(t.toko || "-")}</td>
                     <td className="p-2">
                       <button
                         onClick={() => delTenor(i)}
@@ -1608,8 +1618,8 @@ export default function DataManagement() {
               <tbody>
                 {Object.entries(tokoLabels || {}).map(([id, name]) => (
                   <tr key={id} className="border-t">
-                    <td className="p-2">{id}</td>
-                    <td className="p-2">{name}</td>
+                    <td className="p-2">{safeText(id)}</td>
+                    <td className="p-2">{safeText(name)}</td>
                     <td className="p-2">
                       <button
                         onClick={() => delToko(id)}
@@ -1670,7 +1680,7 @@ function RefEditor({ title, listKey, refs, onAdd, onDel }) {
       <div className="mt-2 max-h-40 overflow-auto border rounded p-2">
         {list.map((x) => (
           <div key={x} className="flex justify-between items-center py-1">
-            <span className="text-sm">{x}</span>
+            <span className="text-sm">{safeText(x)}</span>
             <button
               onClick={() => onDel(listKey, x)}
               className="px-2 py-1 text-xs bg-red-600 text-white rounded"
@@ -1679,9 +1689,7 @@ function RefEditor({ title, listKey, refs, onAdd, onDel }) {
             </button>
           </div>
         ))}
-        {list.length === 0 && (
-          <div className="text-xs text-gray-500">Kosong.</div>
-        )}
+        {list.length === 0 && <div className="text-xs text-gray-500">Kosong.</div>}
       </div>
     </div>
   );

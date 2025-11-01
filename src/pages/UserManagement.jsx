@@ -326,8 +326,9 @@ export default function UserManagement() {
           </div>
         </div>
 
+ <div className="rounded-2xl border bg-white p-4 shadow-sm">
         <div className="overflow-x-auto">
-          <table className="min-w-[800px] text-sm">
+          <table className="min-w-[800px] text-sm rounded-2xl border bg-white p-4 shadow-sm">
             <thead className="bg-slate-50 text-slate-600">
               <tr>
                 <th className="px-3 py-2 text-left">Username</th>
@@ -480,6 +481,7 @@ export default function UserManagement() {
             >
               Next
             </button>
+            </div>
           </div>
         </div>
       </div>
